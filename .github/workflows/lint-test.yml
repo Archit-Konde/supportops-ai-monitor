@@ -1,0 +1,62 @@
+name: Lint & Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          # Stop on syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warn on style issues (non-blocking)
+          flake8 . --count --exit-zero --max-line-length=120 --statistics
+
+      - name: Verify imports
+        run: python -c "import database; import ticket_generator; import ai_triage; print('All modules import OK')"
+
+      - name: Test ticket generation
+        run: |
+          python -c "
+          import ticket_generator as tg
+          tickets = tg.generate_batch(n=5, days_back=7)
+          assert len(tickets) == 5
+          assert all(t['ticket_id'].startswith('TKT-') for t in tickets)
+          print('Ticket generation OK')
+          "
+
+      - name: Test database operations
+        run: |
+          python -c "
+          import database as db
+          db.init_db()
+          import ticket_generator as tg
+          tickets = tg.generate_batch(n=3)
+          for t in tickets:
+              db.insert_ticket(t)
+          all_tickets = db.get_all_tickets()
+          assert len(all_tickets) >= 3
+          stats = db.get_ticket_stats()
+          assert stats['total'] >= 3
+          print('Database operations OK')
+          "
