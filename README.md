@@ -1,3 +1,13 @@
+---
+title: SupportOps AI Monitor
+emoji: 🎫
+colorFrom: yellow
+colorTo: gray
+sdk: docker
+app_port: 8501
+pinned: false
+---
+
 # SupportOps AI Monitor
 
 [![CI](https://github.com/Archit-Konde/supportops-ai-monitor/actions/workflows/lint-test.yml/badge.svg)](https://github.com/Archit-Konde/supportops-ai-monitor/actions/workflows/lint-test.yml)

@@ -1,14 +1,20 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+# Create non-root user (HuggingFace Spaces requirement)
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+
+WORKDIR $HOME/app
 
 # Install dependencies first (Docker cache optimization)
-COPY requirements.txt .
+COPY --chown=user requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py database.py ai_triage.py ticket_generator.py ./
-COPY .streamlit .streamlit
+COPY --chown=user app.py database.py ai_triage.py ticket_generator.py ./
+COPY --chown=user .streamlit .streamlit
 
 # Create runtime directories
 RUN mkdir -p db data logs
