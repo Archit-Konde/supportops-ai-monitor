@@ -26,6 +26,16 @@ SupportOps AI Monitor simulates a complete support operations workflow for an AI
 
 The whole thing runs completely in simulation mode with no API key required. The simulation uses a Gaussian latency distribution (mean 820ms, σ 200ms) and a 10% failure rate across 429/500/408 status codes — realistic enough to make the dashboard interesting without costing anything.
 
+```mermaid
+flowchart LR
+    A["ticket_generator.py\nFaker templates"] -->|"dict"| B[("SQLite\ntickets")]
+    B -->|"ticket"| C["ai_triage.py\ngpt-4o-mini"]
+    C -->|"category · sentiment · summary"| B
+    C -->|"latency · status_code · error_type"| D[("SQLite\napi_health_logs")]
+    B --> E["app.py\nStreamlit"]
+    D --> E
+```
+
 ---
 
 ## Architecture Decisions (and Why)
@@ -55,6 +65,13 @@ This matters for demos. It matters for development. And it forced me to think cl
 ---
 
 ## What I Learned Building It
+
+| Issue | Root cause | Fix |
+|-------|------------|-----|
+| `applymap()` crash at runtime | `pandas >= 2.2` removed it from Styler API | `.map()` — one word change |
+| `pip install` fails on Python 3.14 | Exact version pins (`==`), no pre-built wheels | Minimum-version pins (`>=`) |
+| Dashboard shows stale data after writes | `@st.cache_data` with no invalidation logic | `data_version` counter in session state |
+| SQLite connection leaks on exceptions | `conn.close()` only on success path | `try/finally` wrapping every DB function |
 
 ### The `applymap()` bug
 
@@ -155,10 +172,12 @@ The payoff is that changing the danger colour from `#f87171` to anything else no
 
 Streamlit Community Cloud, Heroku, and Render all run in containers where the filesystem resets on every deploy or restart. The `db/supportops.db` file disappears. Every demo starts with an empty database.
 
-Options:
-- **Hugging Face Spaces**: persists a `/data` directory between restarts. One-line fix: change `DB_PATH` to `/data/supportops.db`. No DB migration needed.
-- **Supabase + psycopg2**: real PostgreSQL, free tier, proper persistence. Requires swapping `database.py` — the queries are generic enough that it's mostly a find-replace on connection handling.
-- **Railway/Render with volumes**: Docker-native, attach a volume at `/app/db`. Works with the existing Dockerfile.
+| Platform | Persistence | Code change required | Best for |
+|----------|-------------|----------------------|----------|
+| **HuggingFace Spaces** | `/data` dir persists between restarts | Change `DB_PATH` to `/data/supportops.db` | Fast live demo — recommended first step |
+| **Supabase + Streamlit Cloud** | PostgreSQL, always-on | Swap `database.py` to `psycopg2` (~50 lines) | Production-grade persistence |
+| **Railway / Render + volume** | Docker volume at `/app/db` | Mount volume in Docker config | Full infrastructure control |
+| **Streamlit Community Cloud** | ❌ Ephemeral — resets on restart | N/A | Not viable with SQLite |
 
 ### Streamlit and the `<head>` tag
 

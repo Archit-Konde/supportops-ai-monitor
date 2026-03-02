@@ -1,25 +1,13 @@
 cff-version: 1.2.0
-message: "If you reference this project, please cite it using the metadata below."
-type: software
+message: "If you use this repository, please cite it as below."
 title: "SupportOps AI Monitor"
-abstract: >
-  A Python/Streamlit dashboard that simulates and monitors enterprise AI platform
-  support workflows. Covers ticket triage with OpenAI, API health observability,
-  and a full simulation mode for zero-cost demos.
+version: "1.0.0"
+date-released: "2026-03-01"
+license: MIT
 authors:
   - family-names: Konde
     given-names: Archit
+    email: architkonde19@gmail.com
+    orcid: "https://orcid.org/0000-0002-2422-117X"
+url: "https://archit-konde.github.io/"
 repository-code: "https://github.com/Archit-Konde/supportops-ai-monitor"
-url: "https://archit-konde.github.io/supportops-ai-monitor/"
-license: MIT
-version: "1.0.0"
-date-released: "2026-03-01"
-keywords:
-  - support-operations
-  - streamlit
-  - openai
-  - sqlite
-  - observability
-  - dashboard
-  - simulation
-  - machine-learning

@@ -28,34 +28,6 @@ flowchart LR
     D --> E
 ```
 
-```mermaid
-erDiagram
-    tickets {
-        TEXT ticket_id PK
-        TEXT created_at
-        TEXT customer
-        TEXT subject
-        TEXT body
-        TEXT priority
-        TEXT status
-        TEXT category
-        TEXT sentiment
-        TEXT ai_summary
-        TEXT resolved_at
-    }
-    api_health_logs {
-        INTEGER id PK
-        TEXT timestamp
-        TEXT endpoint
-        INTEGER status_code
-        REAL latency_ms
-        INTEGER success
-        TEXT error_type
-        TEXT ticket_id FK
-    }
-    tickets ||--o{ api_health_logs : "triage call"
-```
-
 ---
 
 ## Triage Flow
