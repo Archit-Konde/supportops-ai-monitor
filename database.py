@@ -8,7 +8,12 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "db", "supportops.db")
+# HuggingFace Spaces persists /data between restarts — set DB_PATH=/data/supportops.db
+# in the HF Space secrets/env vars to enable persistence.
+DB_PATH = os.environ.get(
+    "DB_PATH",
+    os.path.join(os.path.dirname(__file__), "db", "supportops.db"),
+)
 
 
 def get_connection():
