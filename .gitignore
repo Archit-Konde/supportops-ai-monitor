@@ -8,5 +8,6 @@ dist/
 build/
 .venv/
 venv/
-data/*.json
-logs/*.log
+data/
+logs/
+CLAUDE.md

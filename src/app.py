@@ -4,6 +4,7 @@ SupportOps AI Monitor — Streamlit Dashboard
 Run with: streamlit run app.py
 """
 
+import uuid
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -121,6 +122,77 @@ with st.sidebar:
 
     st.divider()
 
+    # ── CSV/Excel Upload ──────────────────────────────────────────────────────
+    st.subheader("Upload Tickets")
+
+    uploaded_file = st.file_uploader(
+        "Upload CSV or Excel file",
+        type=["csv", "xlsx"],
+        help="Required columns: subject, body. Optional: customer, priority, status.",
+    )
+
+    if uploaded_file is not None:
+        try:
+            if uploaded_file.name.endswith(".xlsx"):
+                upload_df = pd.read_excel(uploaded_file)
+            else:
+                upload_df = pd.read_csv(uploaded_file)
+
+            required = {"subject", "body"}
+            missing = required - set(upload_df.columns)
+            if missing:
+                st.error(f"Missing required columns: {', '.join(missing)}")
+            else:
+                st.write(f"Found **{len(upload_df)}** tickets in upload.")
+                st.dataframe(upload_df.head(5), use_container_width=True, height=150)
+
+                if st.button("Import & Triage Uploaded Tickets", use_container_width=True):
+                    uploaded_tickets = []
+                    for _, row in upload_df.iterrows():
+                        ticket = {
+                            "ticket_id": f"TKT-{uuid.uuid4().hex[:8].upper()}",
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                            "customer": str(row.get("customer", "Uploaded")).strip() or "Uploaded",
+                            "subject": str(row["subject"]).strip(),
+                            "body": str(row["body"]).strip(),
+                            "priority": str(row.get("priority", "medium")).strip().lower(),
+                            "status": str(row.get("status", "open")).strip().lower(),
+                        }
+                        if ticket["priority"] not in {"low", "medium", "high", "critical"}:
+                            ticket["priority"] = "medium"
+                        if ticket["status"] not in {"open", "in_progress", "resolved"}:
+                            ticket["status"] = "open"
+                        uploaded_tickets.append(ticket)
+
+                    with st.spinner("Inserting tickets..."):
+                        for t in uploaded_tickets:
+                            db.insert_ticket(t)
+
+                    upload_progress = st.progress(0)
+                    upload_status = st.empty()
+
+                    def upload_update(i, total):
+                        upload_progress.progress(i / total)
+                        upload_status.text(f"Triaging {i} of {total}...")
+
+                    with st.spinner("Running AI triage on uploaded tickets..."):
+                        upload_stats = ai_triage.triage_batch(
+                            uploaded_tickets, progress_callback=upload_update
+                        )
+
+                    upload_progress.empty()
+                    upload_status.empty()
+                    st.success(
+                        f"Imported {len(uploaded_tickets)} tickets. "
+                        f"{upload_stats['success']} triaged, {upload_stats['failed']} failed."
+                    )
+                    st.session_state.data_version += 1
+                    st.rerun()
+        except Exception as e:
+            st.error(f"Error processing file: {e}")
+
+    st.divider()
+
     st.subheader("Filters")
     status_filter = st.multiselect(
         "Ticket Status",
@@ -134,7 +206,7 @@ with st.sidebar:
     )
 
     st.divider()
-    st.caption("Archit Konde · [GitHub](https://github.com/Archit-Konde)")
+    st.caption("© 2026 [Archit Konde](https://archit-konde.github.io) · [GitHub](https://github.com/Archit-Konde)")
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 all_tickets = load_all_tickets(st.session_state.data_version)
@@ -408,3 +480,15 @@ with st.expander("Raw API Logs (last 100 calls)"):
         st.dataframe(api_df.head(100), use_container_width=True, height=300)
     else:
         st.write("No API logs yet.")
+
+# ── Footer ────────────────────────────────────────────────────────────────────
+st.divider()
+st.markdown(
+    '<div style="text-align:center;padding:1rem 0;font-size:0.78rem;color:#858585;'
+    'font-family:\'JetBrains Mono\',monospace;">'
+    '&copy; 2026 All rights reserved. Designed &amp; Developed by '
+    '<a href="https://archit-konde.github.io/" target="_blank" '
+    'style="color:#C9A84C;text-decoration:none;">Archit Konde</a>'
+    '</div>',
+    unsafe_allow_html=True,
+)

@@ -2,8 +2,8 @@
 .git
 .gitignore
 db/
-data/*.json
-logs/*.log
+data/
+logs/
 __pycache__
 *.pyc
 .venv
@@ -18,11 +18,8 @@ README.md
 LICENSE
 # Documentation, metadata, and dirs not needed in Docker image
 infrastructure/
-assets/
 CHANGELOG.md
-SECURITY.md
 codemeta.json
 CITATION.cff
-blog/
 tests/
 docs/

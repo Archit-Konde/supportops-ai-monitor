@@ -1,0 +1,6 @@
+subject,body,customer,priority
+API returning 500 errors,"We are getting intermittent 500 errors on the completions endpoint since this morning. Affected request IDs: req-a1b2c3, req-d4e5f6. Our production pipeline is blocked.",Acme Corp,critical
+Billing discrepancy on March invoice,"Our invoice shows $450 but based on our usage dashboard we expected approximately $50. Can you provide a detailed usage breakdown for the billing period?",TechStart Inc,high
+Cannot access admin dashboard after password reset,"After completing the password reset flow I can no longer log into the admin dashboard. Browser shows a 403 Forbidden error. Tried clearing cookies and using incognito mode.",DataFlow LLC,medium
+Feature request: webhook notifications,"Would love webhook support for async job completion notifications. Currently we poll the status endpoint every 30 seconds which adds unnecessary API calls and latency.",BuildRight,low
+Safety filter false positive on medical content,"Our healthcare application is getting blocked by the content safety filter when processing legitimate medical terminology. This is affecting patient-facing summaries.",MedAI Solutions,high
