@@ -155,67 +155,80 @@ header[data-testid="stHeader"] {
 /* Minimal print fallback — hides chrome if user hits Ctrl+P on dashboard.
    For a proper PDF, use the Download PDF Report button instead. */
 @media print {
-  /* Hide all UI clutter */
+  /* 1. Hide interactive/UI elements */
   section[data-testid="stSidebar"],
   header[data-testid="stHeader"],
   .custom-footer, .back-to-top, iframe,
   [data-testid="stSidebarCollapseButton"],
   [data-testid="stBottomBlockContainer"],
   [data-testid="stFileUploader"],
-  .stButton, hr, .stCheckbox, .stToggle { display: none !important; }
+  .stButton, .stCheckbox, .stToggle, .stDownloadButton { display: none !important; }
 
-  /* Force light theme for printing */
-  .stApp, .main, body {
+  /* 2. Force light theme & reset layout */
+  .stApp, .main, .stAppViewContainer, .stAppMain {
     background-color: white !important;
-    color: #111111 !important;
+    color: black !important;
   }
   
-  /* Layout adjustments */
-  .main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
   [data-testid="stMainBlockContainer"] { 
     max-width: 100% !important; 
-    padding: 1cm !important; 
-  }
-  
-  /* Beautiful spacers/headers */
-  h1, h2, h3, .term-cmd { 
-    color: #111111 !important; 
-    border-bottom: 2px solid #C9A84C !important;
-    padding-bottom: 5px !important;
-    margin-top: 20px !important;
-  }
-  .term-cmd span { color: #C9A84C !important; }
-  
-  /* Metric cards */
-  [data-testid="metric-container"] {
-    background: #f8f9fa !important;
-    border: 1px solid #dee2e6 !important;
-    color: #111111 !important;
-  }
-  [data-testid="stMetricValue"] { color: #C9A84C !important; }
-  
-  /* Tables and DataFrames */
-  .stDataFrame, table { 
-    border: 1px solid #dee2e6 !important; 
-    background-color: white !important;
-  }
-  
-  /* Fix chart visibility - Plotly usually renders as SVG/Canvas, 
-     some themes might need inversion or specific overrides */
-  div[data-testid="stPlotlyChart"] {
-    filter: invert(0) !important; /* Ensure no accidental inversion */
-    margin-bottom: 20px !important;
-    break-inside: avoid;
+    padding: 0.5cm !important; 
+    margin: 0 !important;
   }
 
-  /* Page breaks for logical organization */
-  h1, h2, .term-cmd { break-before: page; }
-  h1:first-of-type { break-before: auto; }
+  /* 3. Ensure all text and headers are black/visible */
+  h1, h2, h3, p, span, div, label, .term-cmd { 
+    color: black !important; 
+    text-shadow: none !important;
+  }
   
-  /* Better typography for print */
+  .term-cmd {
+    border-bottom: 1px solid #C9A84C !important;
+    padding-bottom: 4px !important;
+    margin: 1.5rem 0 1rem 0 !important;
+    font-weight: bold !important;
+  }
+  
+  .term-cmd span { color: #C9A84C !important; }
+
+  /* 4. Fix Metric Visibility */
+  [data-testid="metric-container"] {
+    background: #fdfdfd !important;
+    border: 1px solid #eeeeee !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+  }
+  [data-testid="stMetricValue"] { color: #C9A84C !important; }
+  [data-testid="stMetricLabel"] { color: #666666 !important; }
+
+  /* 5. Charts & Images - Invert if dark or ensure brightness */
+  div[data-testid="stPlotlyChart"] {
+    margin-bottom: 30px !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* 6. Table styling for paper */
+  .stDataFrame, table {
+    width: 100% !important;
+    border: 1px solid #dddddd !important;
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  th { background-color: #f1f1f1 !important; color: black !important; }
+  td { border: 1px solid #eeeeee !important; }
+
+  /* 7. Page breaks - only for major sections */
+  hr { display: block !important; border: 0 !important; border-top: 1px solid #eeeeee !important; margin: 2rem 0 !important; }
+  
+  /* Prevent weird blank pages by removing aggressive page breaks on every header */
+  h1, h2 { break-before: auto !important; margin-top: 40px !important; }
+  
+  /* Use explicit section IDs or logical breaks if needed, but keep it flowing */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 </style>
+
 
 """, unsafe_allow_html=True)
 
