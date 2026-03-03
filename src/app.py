@@ -291,93 +291,106 @@ def _build_pdf_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats:
     img_cat = img_pri = img_sent = img_vol = img_lat = img_err = img_http = ""
 
     if not tix_df.empty:
-        if "category" in tix_df.columns:
-            cat_c = tix_df["category"].value_counts().reset_index()
-            cat_c.columns = ["category", "count"]
-            img_cat = _fig_to_base64(_px.pie(cat_c, names="category", values="count", title="Tickets by Category", color_discrete_sequence=list(PRIORITY_COLORS.values()), hole=0.4))
-        
-        if "priority" in tix_df.columns:
-            pri_c = (tix_df["priority"].value_counts().reindex(["critical","high","medium","low"]).dropna().reset_index())
-            pri_c.columns = ["priority", "count"]
-            img_pri = _fig_to_base64(_px.bar(pri_c, x="priority", y="count", title="Tickets by Priority", color="priority", color_discrete_map=PRIORITY_COLORS))
+        try:
+            if "category" in tix_df.columns:
+                cat_c = tix_df["category"].value_counts().reset_index()
+                cat_c.columns = ["category", "count"]
+                img_cat = _fig_to_base64(_px.pie(cat_c, names="category", values="count", title="Tickets by Category", color_discrete_sequence=list(PRIORITY_COLORS.values()), hole=0.4))
+            
+            if "priority" in tix_df.columns:
+                pri_c = (tix_df["priority"].value_counts().reindex(["critical","high","medium","low"]).dropna().reset_index())
+                pri_c.columns = ["priority", "count"]
+                img_pri = _fig_to_base64(_px.bar(pri_c, x="priority", y="count", title="Tickets by Priority", color="priority", color_discrete_map=PRIORITY_COLORS))
 
-        if "sentiment" in tix_df.columns:
-            s_c = tix_df[tix_df["sentiment"].notna()]["sentiment"].value_counts().reset_index()
-            s_c.columns = ["sentiment", "count"]
-            if not s_c.empty:
-                img_sent = _fig_to_base64(_px.bar(s_c, x="sentiment", y="count", title="Customer Sentiment", color="sentiment", color_discrete_map=SENTIMENT_COLORS))
+            if "sentiment" in tix_df.columns:
+                s_c = tix_df[tix_df["sentiment"].notna()]["sentiment"].value_counts().reset_index()
+                s_c.columns = ["sentiment", "count"]
+                if not s_c.empty:
+                    img_sent = _fig_to_base64(_px.bar(s_c, x="sentiment", y="count", title="Customer Sentiment", color="sentiment", color_discrete_map=SENTIMENT_COLORS))
 
-        if "created_at" in tix_df.columns:
-            tix_df["_date"] = pd.to_datetime(tix_df["created_at"]).dt.date
-            vol_df = tix_df.groupby("_date").size().reset_index(name="count")
-            img_vol = _fig_to_base64(_px.line(vol_df, x="_date", y="count", title="Ticket Volume Over Time", markers=True, color_discrete_sequence=[COLORS["indigo"]]))
+            if "created_at" in tix_df.columns:
+                tix_df["_date"] = pd.to_datetime(tix_df["created_at"]).dt.date
+                vol_df = tix_df.groupby("_date").size().reset_index(name="count")
+                img_vol = _fig_to_base64(_px.line(vol_df, x="_date", y="count", title="Ticket Volume Over Time", markers=True, color_discrete_sequence=[COLORS["indigo"]]))
+        except Exception as e:
+            st.error(f"Error generating support charts: {e}")
 
     if not api_df.empty:
-        suc = api_df[api_df["success"] == 1].copy()
-        if not suc.empty:
-            suc["timestamp"] = pd.to_datetime(suc["timestamp"])
-            fig_lat = _px.scatter(suc.sort_values("timestamp"), x="timestamp", y="latency_ms", title="API Latency Over Time", color_discrete_sequence=[COLORS["indigo"]], opacity=0.6)
-            img_lat = _fig_to_base64(fig_lat)
+        try:
+            suc = api_df[api_df["success"] == 1].copy()
+            if not suc.empty:
+                suc["timestamp"] = pd.to_datetime(suc["timestamp"])
+                fig_lat = _px.scatter(suc.sort_values("timestamp"), x="timestamp", y="latency_ms", title="API Latency Over Time", color_discrete_sequence=[COLORS["indigo"]], opacity=0.6)
+                img_lat = _fig_to_base64(fig_lat)
 
-        err_df = api_df[api_df["success"] == 0]
-        if not err_df.empty:
-            e_c = err_df["error_type"].value_counts().reset_index()
-            e_c.columns = ["error_type", "count"]
-            img_err = _fig_to_base64(_px.bar(e_c, x="error_type", y="count", title="API Errors by Type", color="error_type", color_discrete_map=ERROR_COLORS))
+            err_df = api_df[api_df["success"] == 0]
+            if not err_df.empty:
+                e_c = err_df["error_type"].value_counts().reset_index()
+                e_c.columns = ["error_type", "count"]
+                img_err = _fig_to_base64(_px.bar(e_c, x="error_type", y="count", title="API Errors by Type", color="error_type", color_discrete_map=ERROR_COLORS))
 
-        hc = api_df["status_code"].value_counts().reset_index()
-        hc.columns = ["status_code", "count"]
-        hc["status_code"] = hc["status_code"].astype(str)
-        img_http = _fig_to_base64(_px.bar(hc, x="status_code", y="count", title="HTTP Status Code Distribution", color="status_code", color_discrete_map=HTTP_COLORS))
+            hc = api_df["status_code"].value_counts().reset_index()
+            hc.columns = ["status_code", "count"]
+            hc["status_code"] = hc["status_code"].astype(str)
+            img_http = _fig_to_base64(_px.bar(hc, x="status_code", y="count", title="HTTP Status Code Distribution", color="status_code", color_discrete_map=HTTP_COLORS))
+        except Exception as e:
+            st.error(f"Error generating API charts: {e}")
 
-    # -- KPI cards --
-    kpis_html = "".join(
-        f'<div class="kpi"><div class="kv">{v}</div><div class="kl">{lbl}</div></div>'
-        for v, lbl in [
-            (t_stats.get("total", 0), "Total Tickets"),
-            (t_stats.get("open", 0), "Open"),
-            (t_stats.get("resolved", 0), "Resolved"),
-            (f"{a_stats.get('success_rate', 0)}%", "API Success Rate"),
-            (f"{a_stats.get('avg_latency_ms', 0)} ms", "Avg Latency"),
-        ]
-    )
+    # -- KPI Table (xhtml2pdf fallback for flex) --
+    kpi_items = [
+        (str(t_stats.get("total", 0)), "Total Tickets"),
+        (str(t_stats.get("open", 0)), "Open"),
+        (str(t_stats.get("resolved", 0)), "Resolved"),
+        (f"{a_stats.get('success_rate', 0)}%", "API Success Rate"),
+        (f"{a_stats.get('avg_latency_ms', 0)} ms", "Avg Latency"),
+    ]
+    
+    kpis_html = "<table style='width: 100%;'><tr>"
+    for v, lbl in kpi_items:
+        kpis_html += f"""
+        <td style='width: 20%; padding: 5px;'>
+            <div style='background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; text-align: center;'>
+                <div style='font-size: 18px; font-weight: bold; color: #C9A84C;'>{v}</div>
+                <div style='font-size: 10px; color: #666;'>{lbl}</div>
+            </div>
+        </td>"""
+    kpis_html += "</tr></table>"
 
     # -- Ticket Table --
-    ticket_rows = "".join(
-        f"<tr style='background-color: {'#ffffff' if i%2==0 else '#f9f9f9'}'>"
-        f"<td>{t.get('ticket_id','')}</td>"
-        f"<td>{t.get('customer','')}</td>"
-        f"<td>{str(t.get('subject',''))[:60]}</td>"
-        f"<td style='color:{PRIORITY_COLORS.get(t.get('priority',''),'#333')}'><b>{t.get('priority','').upper()}</b></td>"
-        f"<td>{t.get('status','')}</td>"
-        f"<td>{t.get('category') or '—'}</td>"
-        f"<td>{t.get('sentiment') or '—'}</td>"
-        f"</tr>"
-        for i, t in enumerate(all_tix[:60])
-    )
+    ticket_rows = ""
+    for i, t in enumerate(all_tix[:60]):
+        bg = "#ffffff" if i % 2 == 0 else "#f9f9f9"
+        priority = str(t.get('priority','')).upper()
+        p_color = PRIORITY_COLORS.get(t.get('priority',''), '#333')
+        ticket_rows += f"""
+        <tr style='background-color: {bg}'>
+            <td>{str(t.get('ticket_id',''))}</td>
+            <td>{str(t.get('customer',''))}</td>
+            <td>{str(t.get('subject',''))[:60]}</td>
+            <td style='color:{p_color}'><b>{priority}</b></td>
+            <td>{str(t.get('status',''))}</td>
+            <td>{str(t.get('category','') or '—')}</td>
+            <td>{str(t.get('sentiment','') or '—')}</td>
+        </tr>"""
 
     html = f"""
     <html>
     <head>
         <style>
-            @page {{ size: A4 landscape; margin: 1.5cm; }}
+            @page {{ size: A4 landscape; margin: 1cm; }}
             body {{ font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.4; background-color: white; }}
             .header {{ border-bottom: 2px solid #C9A84C; padding-bottom: 10px; margin-bottom: 20px; }}
-            .title {{ font-size: 24px; font-weight: bold; color: #111; }}
+            .title {{ font-size: 22px; font-weight: bold; color: #111; }}
             .title span {{ color: #C9A84C; }}
-            .meta {{ font-size: 10px; color: #666; margin-top: 5px; }}
-            .section-title {{ font-size: 14px; font-weight: bold; color: #C9A84C; margin-top: 25px; margin-bottom: 10px; text-transform: uppercase; border-left: 4px solid #C9A84C; padding-left: 10px; }}
-            .kpis {{ display: flex; width: 100%; margin-bottom: 20px; }}
-            .kpi {{ width: 18%; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; text-align: center; margin-right: 2%; }}
-            .kv {{ font-size: 20px; font-weight: bold; color: #C9A84C; }}
-            .kl {{ font-size: 10px; color: #666; }}
-            .chart-grid {{ width: 100%; margin-bottom: 20px; }}
-            .chart-img {{ width: 48%; border: 1px solid #f0f0f0; margin-bottom: 15px; display: inline-block; vertical-align: top; }}
-            .chart-full {{ width: 98%; border: 1px solid #f0f0f0; margin-bottom: 15px; }}
+            .meta {{ font-size: 9px; color: #666; margin-top: 5px; }}
+            .section-title {{ font-size: 13px; font-weight: bold; color: #C9A84C; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; border-left: 4px solid #C9A84C; padding-left: 10px; }}
+            .chart-table {{ width: 100%; }}
+            .chart-cell {{ width: 50%; padding: 10px; text-align: center; }}
+            .chart-img {{ width: 100%; border: 1px solid #f0f0f0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }}
             th {{ background-color: #f1f3f5; color: #111; text-align: left; padding: 8px; border: 1px solid #dee2e6; }}
             td {{ padding: 6px 8px; border: 1px solid #dee2e6; vertical-align: top; }}
-            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }}
+            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }}
         </style>
     </head>
     <body>
@@ -387,23 +400,31 @@ def _build_pdf_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats:
         </div>
 
         <div class="section-title">Operational Overview</div>
-        <div class="kpis">{kpis_html}</div>
+        {kpis_html}
 
         <div class="section-title">Support Analytics</div>
-        <div class="chart-grid">
-            {f'<img class="chart-img" src="{img_cat}">' if img_cat else ''}
-            {f'<img class="chart-img" src="{img_pri}">' if img_pri else ''}
-            <br/>
-            {f'<img class="chart-img" src="{img_sent}">' if img_sent else ''}
-            {f'<img class="chart-img" src="{img_vol}">' if img_vol else ''}
-        </div>
+        <table class="chart-table">
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_cat}">' if img_cat else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_pri}">' if img_pri else ''}</td>
+            </tr>
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_sent}">' if img_sent else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_vol}">' if img_vol else ''}</td>
+            </tr>
+        </table>
+
+        <pdf:nextpage />
 
         <div class="section-title">API Health & Performance</div>
-        <div class="chart-grid">
-            {f'<img class="chart-img" src="{img_lat}">' if img_lat else ''}
-            {f'<img class="chart-img" src="{img_err}">' if img_err else ''}
-            <br/>
-            {f'<img class="chart-full" src="{img_http}">' if img_http else ''}
+        <table class="chart-table">
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_lat}">' if img_lat else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_err}">' if img_err else ''}</td>
+            </tr>
+        </table>
+        <div style="text-align: center; padding: 10px;">
+            {f'<img style="width: 80%; border: 1px solid #f0f0f0;" src="{img_http}">' if img_http else ''}
         </div>
 
         <pdf:nextpage />
@@ -432,6 +453,7 @@ def _build_pdf_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats:
     </body>
     </html>
     """
+
     
     pdf_buffer = io.BytesIO()
     pisa_status = pisa.CreatePDF(html, dest=pdf_buffer)
