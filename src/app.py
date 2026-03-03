@@ -98,20 +98,6 @@ footer { visibility: hidden !important; }
   { color: #C9A84C !important; }
 /* Hide Streamlit header anchor icon */
 [data-testid="StyledLinkIconContainer"] { display: none !important; }
-/* Expander arrow — CSS hides what it can, JS below removes the rest */
-[data-testid="stExpanderToggleIcon"],
-[data-testid="stSidebarCollapseButton"] span { display: none !important; }
-details summary::before {
-  content: "›";
-  display: inline-block;
-  color: #C9A84C;
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-right: 0.4rem;
-  transition: transform 0.2s ease;
-  font-family: 'JetBrains Mono', monospace;
-}
-details[open] summary::before { transform: rotate(90deg); }
 /* Hide Streamlit top bar (Rerun / Settings / Made with Streamlit) */
 header[data-testid="stHeader"] { display: none !important; }
 #MainMenu { display: none !important; }
@@ -132,60 +118,38 @@ header[data-testid="stHeader"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Fix expander "arrow_right" ligature text ─────────────────────────────────
-# Streamlit strips <script> from st.markdown, so we must use components.v1.html
-# which creates a real iframe. From there, window.parent.document reaches the
-# Streamlit DOM. MutationObserver re-runs on every change to catch late renders.
-# ── All JS fixes — must use components.v1.html (Streamlit strips <script> from st.markdown) ─
+# ── JS fixes — st.markdown strips <script>, so use components.v1.html ────────
+# NOTE: window.parent.document may be blocked by cross-origin policy on
+# HuggingFace Spaces. The try/catch ensures silent failure, not a crash.
 st.components.v1.html("""
 <script>
 (function(){
-  var doc = window.parent.document;
-
-  /* 1. Strip "arrow_right" / "arrow_drop_down" ligature text from expanders */
-  function fixExpanders(){
-    doc.querySelectorAll('details summary').forEach(function(s){
-      var tw = doc.createTreeWalker(s, NodeFilter.SHOW_TEXT, null, false);
-      var n;
-      while(n = tw.nextNode()){
-        if(n.textContent.indexOf('arrow_right') !== -1)
-          n.textContent = n.textContent.replace(/arrow_right/g, '');
-        if(n.textContent.indexOf('arrow_drop_down') !== -1)
-          n.textContent = n.textContent.replace(/arrow_drop_down/g, '');
-      }
-    });
-  }
-  fixExpanders();
-  new MutationObserver(fixExpanders).observe(doc.body, {childList:true, subtree:true});
-
-  /* 2. Back-to-top button — scroll listener on Streamlit's inner container */
-  var btn = doc.getElementById('backToTop');
-  if(btn){
-    function getContainer(){
+  try {
+    var doc = window.parent.document;
+    var btn = doc.getElementById('backToTop');
+    if(!btn) return;
+    function getC(){
       return doc.querySelector('[data-testid="stMainBlockContainer"]')
           || doc.querySelector('[data-testid="stAppViewContainer"]')
-          || doc.querySelector('.main')
-          || null;
+          || doc.querySelector('.main') || null;
     }
     function onScroll(){
-      var c = getContainer();
+      var c = getC();
       var top = c ? c.scrollTop : window.parent.scrollY;
       btn.classList.toggle('visible', top > 400);
     }
-    /* Capture-phase listener catches scroll events from any target */
     doc.addEventListener('scroll', onScroll, true);
-    /* Also poll for container and attach directly */
     var poll = setInterval(function(){
-      var c = getContainer();
+      var c = getC();
       if(c){ c.addEventListener('scroll', onScroll); clearInterval(poll); }
     }, 300);
     btn.addEventListener('click', function(e){
       e.preventDefault();
-      var c = getContainer();
+      var c = getC();
       if(c) c.scrollTo({top:0, behavior:'smooth'});
       else  window.parent.scrollTo({top:0, behavior:'smooth'});
     });
-  }
+  } catch(e) { /* cross-origin — scroll-to-top won't work on this host */ }
 })();
 </script>
 """, height=0)
@@ -739,42 +703,45 @@ if not ticket_df.empty:
     styled = display_df.style.map(priority_badge, subset=["priority"])
     st.dataframe(styled, use_container_width=True, height=400)
 
-    with st.expander("View ticket details"):
-        ticket_ids = [t["ticket_id"] for t in filtered_tickets]
-        selected_id = st.selectbox("Select ticket ID", options=ticket_ids)
-        if selected_id:
-            ticket = next((t for t in filtered_tickets if t["ticket_id"] == selected_id), None)
-            if ticket:
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Priority", ticket["priority"].upper())
-                with col2:
-                    st.metric("Status", ticket["status"])
-                with col3:
-                    st.metric("Category", ticket.get("category", "—"))
+    if st.toggle("› View ticket details", key="toggle_ticket_details"):
+        with st.container(border=True):
+            ticket_ids = [t["ticket_id"] for t in filtered_tickets]
+            selected_id = st.selectbox("Select ticket ID", options=ticket_ids)
+            if selected_id:
+                ticket = next((t for t in filtered_tickets if t["ticket_id"] == selected_id), None)
+                if ticket:
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Priority", ticket["priority"].upper())
+                    with col2:
+                        st.metric("Status", ticket["status"])
+                    with col3:
+                        st.metric("Category", ticket.get("category", "—"))
 
-                st.write(f"**Customer:** {ticket['customer']}")
-                st.write(f"**Subject:** {ticket['subject']}")
-                st.write(f"**Created:** {ticket['created_at']}")
-                if ticket.get("ai_summary"):
-                    st.info(f"→ AI: {ticket['ai_summary']}")
-                st.text_area("Ticket Body", value=ticket["body"], height=200, disabled=True)
+                    st.write(f"**Customer:** {ticket['customer']}")
+                    st.write(f"**Subject:** {ticket['subject']}")
+                    st.write(f"**Created:** {ticket['created_at']}")
+                    if ticket.get("ai_summary"):
+                        st.info(f"→ AI: {ticket['ai_summary']}")
+                    st.text_area("Ticket Body", value=ticket["body"], height=200, disabled=True)
 
-                if ticket["status"] != "resolved":
-                    if st.button("Mark as Resolved", type="primary"):
-                        db.resolve_ticket(selected_id)
-                        st.success("Ticket resolved.")
-                        st.session_state.data_version += 1
-                        st.rerun()
+                    if ticket["status"] != "resolved":
+                        if st.button("Mark as Resolved", type="primary"):
+                            db.resolve_ticket(selected_id)
+                            st.success("Ticket resolved.")
+                            st.session_state.data_version += 1
+                            st.rerun()
 
 st.divider()
 
 # ── Section 5: Raw API Logs ───────────────────────────────────────────────────
-with st.expander("$ tail -f api.log (last 100 calls)"):
-    if not api_df.empty:
-        st.dataframe(api_df.head(100), use_container_width=True, height=300)
-    else:
-        st.write("No API logs yet.")
+_term("tail -f api.log")
+if st.toggle("› Show last 100 API calls", key="toggle_api_logs"):
+    with st.container(border=True):
+        if not api_df.empty:
+            st.dataframe(api_df.head(100), use_container_width=True, height=300)
+        else:
+            st.write("No API logs yet.")
 
 st.divider()
 
