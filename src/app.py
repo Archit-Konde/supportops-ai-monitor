@@ -155,7 +155,7 @@ header[data-testid="stHeader"] {
 /* Minimal print fallback — hides chrome if user hits Ctrl+P on dashboard.
    For a proper PDF, use the Download PDF Report button instead. */
 @media print {
-  /* 1. Complete UI Stripping */
+  /* 1. Hide UI Clutter */
   section[data-testid="stSidebar"],
   header[data-testid="stHeader"],
   .custom-footer, .back-to-top, iframe,
@@ -163,9 +163,9 @@ header[data-testid="stHeader"] {
   [data-testid="stBottomBlockContainer"],
   [data-testid="stFileUploader"],
   .stButton, .stCheckbox, .stToggle, .stDownloadButton,
-  #MainMenu, footer, .stSpinner { display: none !important; }
+  #MainMenu, footer, .stSpinner, .stMetricDelta { display: none !important; }
 
-  /* 2. Absolute Light Mode Force */
+  /* 2. Absolute White Theme Force */
   html, body, .stApp, .main, .stAppViewContainer, .stAppMain, 
   [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
     background-color: white !important;
@@ -179,57 +179,70 @@ header[data-testid="stHeader"] {
     margin: 0 !important;
   }
 
-  /* 3. Text & Header Visibility */
+  /* 3. Text Clarity & Headers */
   h1, h2, h3, h4, h5, h6, p, span, div, label, .term-cmd { 
-    color: black !important; 
+    color: #111111 !important; 
     background-color: transparent !important;
     text-shadow: none !important;
   }
   
   .term-cmd {
     border-bottom: 2px solid #C9A84C !important;
-    padding-bottom: 4px !important;
-    margin: 2rem 0 1rem 0 !important;
+    padding-bottom: 5px !important;
+    margin: 2.5rem 0 1rem 0 !important;
     font-weight: bold !important;
-    display: block !important;
+    font-size: 1rem !important;
   }
-  
   .term-cmd span { color: #C9A84C !important; }
 
-  /* 4. KPI & Metric Fixes */
+  /* 4. Metric Cards Clarity */
   [data-testid="metric-container"] {
-    background: #fdfdfd !important;
+    background: #ffffff !important;
     border: 1px solid #dddddd !important;
-    box-shadow: none !important;
+    padding: 15px !important;
   }
-  [data-testid="stMetricValue"] { color: #C9A84C !important; font-weight: bold !important; }
-  [data-testid="stMetricLabel"] { color: #444444 !important; }
+  [data-testid="stMetricValue"] { color: #C9A84C !important; font-weight: 800 !important; }
+  [data-testid="stMetricLabel"] { color: #333333 !important; }
 
-  /* 5. Chart & Diagram Inversion (Dark to Light) */
-  /* This is the magic trick to turn dark-themed Plotly charts into light-themed ones */
+  /* 5. Chart Clarity (NO INVERSION- it makes fonts gray) */
+  /* Instead, we set a white background for the charts */
   div[data-testid="stPlotlyChart"], .stPlotlyChart {
-    filter: invert(0.9) hue-rotate(180deg) !important;
     background: white !important;
+    border: 1px solid #f0f0f0 !important;
     margin-bottom: 2rem !important;
     page-break-inside: avoid !important;
   }
-
-  /* 6. Table & DataFrame Clean-up */
-  .stDataFrame, [data-testid="stTable"], table {
+  
+  /* 6. High-Contrast Tables & DataFrames */
+  /* Remove inversion filters from tables */
+  .stDataFrame, [data-testid="stTable"], table, 
+  [data-testid="stDataFrame"] div, [data-testid="stDataFrame"] canvas {
+    filter: none !important;
     background-color: white !important;
+    background: white !important;
     color: black !important;
-    border: 1px solid #cccccc !important;
+  }
+
+  /* Reset all table cells to be readable */
+  table, th, td {
+    color: black !important;
+    background: white !important;
+    border: 1px solid #eeeeee !important;
   }
   
-  /* Override Streamlit's internal dataframe dark styles */
-  [data-testid="stDataFrame"] div, [data-testid="stDataFrame"] canvas {
-    filter: invert(0.9) hue-rotate(180deg) !important;
+  th { 
+    background-color: #f8f9fa !important; 
+    color: black !important; 
+    font-weight: 700 !important; 
+    padding: 10px !important;
+  }
+  
+  td { 
+    padding: 8px !important; 
+    color: #222222 !important; 
   }
 
-  th { background-color: #eeeeee !important; color: black !important; font-weight: bold !important; }
-  td { border: 1px solid #eeeeee !important; color: black !important; }
-
-  /* 7. Strip background colors from everything else */
+  /* 7. Final Polish */
   * { 
     -webkit-print-color-adjust: exact !important; 
     print-color-adjust: exact !important;
@@ -237,11 +250,10 @@ header[data-testid="stHeader"] {
   }
   
   hr { display: none !important; }
-  
-  /* Prevent large gaps and weird spacing */
-  .element-container { margin-bottom: 1rem !important; }
+  .element-container { margin-bottom: 1.5rem !important; }
 }
 </style>
+
 
 
 
