@@ -98,9 +98,30 @@ footer { visibility: hidden !important; }
   { color: #C9A84C !important; }
 /* Hide Streamlit header anchor icon */
 [data-testid="StyledLinkIconContainer"] { display: none !important; }
-/* Hide Streamlit top bar (Rerun / Settings / Made with Streamlit) */
-header[data-testid="stHeader"] { display: none !important; }
+/* Streamlit top bar — keep it functional (sidebar toggle lives here)
+   but make it invisible so it doesn't clash with our design */
+header[data-testid="stHeader"] {
+  background: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 #MainMenu { display: none !important; }
+/* Sidebar collapse button — hide "keyboard_double_arrow_left" ligature text,
+   replace with a simple « character via CSS */
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="stSidebarCollapseButton"] svg {
+  font-size: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  display: none !important;
+}
+[data-testid="stSidebarCollapseButton"] button::after {
+  content: "\00AB";  /* « character */
+  font-size: 1.2rem;
+  color: #C9A84C;
+  font-family: 'JetBrains Mono', monospace;
+}
 /* Fix upload widget text clipping in narrow sidebar */
 [data-testid="stFileUploader"] label,
 [data-testid="stFileUploader"] span
