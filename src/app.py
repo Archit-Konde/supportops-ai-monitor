@@ -84,7 +84,9 @@ code, pre, .stCode, [data-testid="stCodeBlock"],
 [data-testid="stSidebarCollapseButton"] span,
 [data-testid="stSidebarCollapseButton"] button span,
 [data-testid="collapsedControl"] span,
-[data-testid="collapsedControl"] button span {
+[data-testid="collapsedControl"] button span,
+header[data-testid="stHeader"] span,
+header[data-testid="stHeader"] button span {
   font-family: 'Material Symbols Rounded', 'Material Symbols Outlined',
                'Material Icons', 'Material Icons Round', 'Material Icons Outlined' !important;
   font-weight: normal !important;
