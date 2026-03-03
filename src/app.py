@@ -241,7 +241,14 @@ header[data-testid="stHeader"] {
 st.components.v1.html("""
 <script>
 (function(){
+  console.log(
+    "%c> SupportOps Monitor%c\nDesigned & Developed by Archit Konde\n%chttps://archit-konde.github.io/",
+    "color: #C9A84C; font-size: 20px; font-weight: bold; font-family: monospace;",
+    "color: #858585; font-size: 14px; font-family: monospace;",
+    "color: #C9A84C; text-decoration: underline; font-family: monospace;"
+  );
   try {
+
     var doc = window.parent.document;
     var btn = doc.getElementById('backToTop');
     if(!btn) return;
