@@ -293,21 +293,23 @@ def _build_html_report(all_tix: list, t_stats: dict, a_stats: dict) -> str:
 db.init_db()
 
 # ── Cached data loaders ───────────────────────────────────────────────────────
+# NOTE: parameter MUST NOT start with underscore — Streamlit excludes _-prefixed
+# params from the cache key, so _version would never bust the cache.
 @st.cache_data(ttl=60)
-def load_all_tickets(_version):
-    """Load all tickets from DB. _version param busts cache on new data."""
+def load_all_tickets(version):
+    """Load all tickets from DB. version param busts cache on new data."""
     return db.get_all_tickets()
 
 @st.cache_data(ttl=60)
-def load_api_logs(_version, limit=500):
+def load_api_logs(version, limit=500):
     return db.get_api_logs(limit=limit)
 
 @st.cache_data(ttl=30)
-def load_ticket_stats(_version):
+def load_ticket_stats(version):
     return db.get_ticket_stats()
 
 @st.cache_data(ttl=30)
-def load_api_health_stats(_version):
+def load_api_health_stats(version):
     return db.get_api_health_stats()
 
 if "data_version" not in st.session_state:
