@@ -155,16 +155,68 @@ header[data-testid="stHeader"] {
 /* Minimal print fallback — hides chrome if user hits Ctrl+P on dashboard.
    For a proper PDF, use the Download PDF Report button instead. */
 @media print {
+  /* Hide all UI clutter */
   section[data-testid="stSidebar"],
   header[data-testid="stHeader"],
   .custom-footer, .back-to-top, iframe,
   [data-testid="stSidebarCollapseButton"],
   [data-testid="stBottomBlockContainer"],
-  .stButton { display: none !important; }
-  .main { margin-left: 0 !important; width: 100% !important; }
-  [data-testid="stMainBlockContainer"] { max-width: 100% !important; }
+  [data-testid="stFileUploader"],
+  .stButton, hr, .stCheckbox, .stToggle { display: none !important; }
+
+  /* Force light theme for printing */
+  .stApp, .main, body {
+    background-color: white !important;
+    color: #111111 !important;
+  }
+  
+  /* Layout adjustments */
+  .main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  [data-testid="stMainBlockContainer"] { 
+    max-width: 100% !important; 
+    padding: 1cm !important; 
+  }
+  
+  /* Beautiful spacers/headers */
+  h1, h2, h3, .term-cmd { 
+    color: #111111 !important; 
+    border-bottom: 2px solid #C9A84C !important;
+    padding-bottom: 5px !important;
+    margin-top: 20px !important;
+  }
+  .term-cmd span { color: #C9A84C !important; }
+  
+  /* Metric cards */
+  [data-testid="metric-container"] {
+    background: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    color: #111111 !important;
+  }
+  [data-testid="stMetricValue"] { color: #C9A84C !important; }
+  
+  /* Tables and DataFrames */
+  .stDataFrame, table { 
+    border: 1px solid #dee2e6 !important; 
+    background-color: white !important;
+  }
+  
+  /* Fix chart visibility - Plotly usually renders as SVG/Canvas, 
+     some themes might need inversion or specific overrides */
+  div[data-testid="stPlotlyChart"] {
+    filter: invert(0) !important; /* Ensure no accidental inversion */
+    margin-bottom: 20px !important;
+    break-inside: avoid;
+  }
+
+  /* Page breaks for logical organization */
+  h1, h2, .term-cmd { break-before: page; }
+  h1:first-of-type { break-before: auto; }
+  
+  /* Better typography for print */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 </style>
+
 """, unsafe_allow_html=True)
 
 # ── JS fixes — st.markdown strips <script>, so use components.v1.html ────────
