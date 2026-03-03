@@ -216,14 +216,18 @@ pytest
 
 This repository is openly shared to support learning and knowledge exchange across the engineering community.
 
-**For Engineers**  
+**For Engineers**
+
 Use this project as a reference implementation for building **observability dashboards**, **simulation engines**, and **AI-powered triage systems**. The source code is structured for clarity and annotated for self-paced exploration.
 
-**For Educators**  
+**For Educators**
+
 This project may serve as a practical case study for courses in **Software Engineering**, **Data Visualisation**, **AI Integration**, and **DevOps**. Attribution is appreciated when utilising content.
 
-**For Researchers**  
+**For Researchers**
+
 The architecture and simulation methodology may provide insights into **synthetic data generation**, **API health modelling**, and **operational intelligence design patterns**.
+
 
 
 ---
