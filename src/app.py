@@ -151,14 +151,40 @@ header[data-testid="stHeader"] {
 [data-testid="stFileUploader"] span
   { word-wrap: break-word !important; overflow-wrap: break-word !important;
     font-size: 0.78rem !important; }
-/* Print styles for PDF export */
+/* Print styles — Ctrl+P on the live dashboard */
 @media print {
-  section[data-testid="stSidebar"], header[data-testid="stHeader"],
-  .custom-footer, .back-to-top, .stButton { display: none !important; }
-  .stApp { background: white !important; }
-  [data-testid="stMetricValue"] { color: #1e1e1e !important; }
-  h1,h2,h3,p,span,div { color: #1e1e1e !important; }
-  [data-testid="metric-container"] { border: 1px solid #ccc !important; background: white !important; }
+  @page { margin: 1.5cm; size: A4 landscape; }
+
+  /* Preserve dark colors in print */
+  body, .stApp {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide interactive / nav chrome */
+  section[data-testid="stSidebar"],
+  header[data-testid="stHeader"],
+  .custom-footer,
+  .back-to-top,
+  iframe,
+  [data-testid="stSidebarCollapseButton"],
+  [data-testid="stBottomBlockContainer"],
+  .stButton,
+  [data-testid="stToggle"],
+  [data-testid="stFileUploader"],
+  [data-testid="stSlider"],
+  [data-testid="stSelectbox"],
+  [data-testid="stTextArea"],
+  [data-testid="stCaption"] { display: none !important; }
+
+  /* Page break control */
+  [data-testid="stPlotlyChart"] { page-break-inside: avoid; }
+  [data-testid="stMetric"] { page-break-inside: avoid; }
+  .main .block-container { padding-bottom: 0 !important; }
+
+  /* Expand main content to full width since sidebar is hidden */
+  .main { margin-left: 0 !important; width: 100% !important; }
+  [data-testid="stMainBlockContainer"] { max-width: 100% !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -238,98 +264,295 @@ def _term(cmd):
     )
 
 # ── HTML Report generator ─────────────────────────────────────────────────────
-def _build_html_report(all_tix: list, t_stats: dict, a_stats: dict) -> str:
-    """Return a self-contained HTML string. Open in browser → Ctrl+P → Save as PDF."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+# Dark-themed, chart-embedded, print-ready HTML report.
+# Open in browser → Ctrl+P → Save as PDF to get a proper dark-themed PDF.
+_REPORT_CHART_LAYOUT = dict(
+    paper_bgcolor="#1e1e1e",
+    plot_bgcolor="#252526",
+    font=dict(color="#d4d4d4", family="'Courier New', monospace", size=11),
+    title=dict(font=dict(color="#d4d4d4", size=12)),
+    xaxis=dict(gridcolor="#3e3e42", linecolor="#3e3e42", zerolinecolor="#3e3e42"),
+    yaxis=dict(gridcolor="#3e3e42", linecolor="#3e3e42", zerolinecolor="#3e3e42"),
+    legend=dict(bgcolor="#1e1e1e", bordercolor="#3e3e42", font=dict(color="#d4d4d4")),
+    margin=dict(t=44, b=20, l=20, r=20),
+    height=280,
+)
 
-    # KPI block
+def _build_html_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats: dict) -> str:
+    """Return a dark-themed HTML report with embedded Plotly charts.
+    Open in any browser → Ctrl+P → Save as PDF to get a styled PDF.
+    Uses Plotly CDN — requires internet to render charts.
+    """
+    import plotly.express as _px
+    import plotly.io as _pio
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    tix_df  = pd.DataFrame(all_tix)    if all_tix    else pd.DataFrame()
+    api_df  = pd.DataFrame(api_logs_raw) if api_logs_raw else pd.DataFrame()
+
+    # ── helper: apply dark layout + export to HTML div ──────────────────────
+    _first_chart = [True]   # use CDN script only on first chart
+
+    def _chart(fig, height=280):
+        fig.update_layout(**{**_REPORT_CHART_LAYOUT, "height": height})
+        incl = "cdn" if _first_chart[0] else False
+        _first_chart[0] = False
+        return _pio.to_html(fig, full_html=False, include_plotlyjs=incl,
+                            config={"displayModeBar": False})
+
+    # ── Chart 1: Category donut ──────────────────────────────────────────────
+    ch_cat = ""
+    if not tix_df.empty and "category" in tix_df.columns:
+        cat_c = tix_df["category"].value_counts().reset_index()
+        cat_c.columns = ["category", "count"]
+        ch_cat = _chart(_px.pie(cat_c, names="category", values="count",
+                                title="Tickets by Category",
+                                color_discrete_sequence=list(PRIORITY_COLORS.values()),
+                                hole=0.4))
+
+    # ── Chart 2: Priority bar ────────────────────────────────────────────────
+    ch_pri = ""
+    if not tix_df.empty and "priority" in tix_df.columns:
+        pri_c = (tix_df["priority"].value_counts()
+                 .reindex(["critical","high","medium","low"]).dropna().reset_index())
+        pri_c.columns = ["priority", "count"]
+        ch_pri = _chart(_px.bar(pri_c, x="priority", y="count",
+                                title="Tickets by Priority", color="priority",
+                                color_discrete_map=PRIORITY_COLORS))
+
+    # ── Chart 3: Sentiment bar ───────────────────────────────────────────────
+    ch_sent = ""
+    if not tix_df.empty and "sentiment" in tix_df.columns:
+        sent_df = tix_df[tix_df["sentiment"].notna()]
+        if not sent_df.empty:
+            s_c = sent_df["sentiment"].value_counts().reset_index()
+            s_c.columns = ["sentiment", "count"]
+            ch_sent = _chart(_px.bar(s_c, x="sentiment", y="count",
+                                     title="Customer Sentiment", color="sentiment",
+                                     color_discrete_map=SENTIMENT_COLORS))
+
+    # ── Chart 4: Volume over time ────────────────────────────────────────────
+    ch_vol = ""
+    if not tix_df.empty and "created_at" in tix_df.columns:
+        tix_df["_date"] = pd.to_datetime(tix_df["created_at"]).dt.date
+        vol_df = tix_df.groupby("_date").size().reset_index(name="count")
+        ch_vol = _chart(_px.line(vol_df, x="_date", y="count",
+                                 title="Ticket Volume Over Time", markers=True,
+                                 color_discrete_sequence=[COLORS["indigo"]]), height=220)
+
+    # ── Chart 5: API latency scatter ─────────────────────────────────────────
+    ch_lat = ""
+    if not api_df.empty and "success" in api_df.columns:
+        suc = api_df[api_df["success"] == 1].copy()
+        if not suc.empty:
+            suc["timestamp"] = pd.to_datetime(suc["timestamp"])
+            suc = suc.sort_values("timestamp")
+            fig_lat = _px.scatter(suc, x="timestamp", y="latency_ms",
+                                  title="API Latency Over Time",
+                                  color_discrete_sequence=[COLORS["indigo"]], opacity=0.6)
+            fig_lat.add_hline(y=suc["latency_ms"].mean(), line_dash="dash",
+                              line_color=COLORS["warning"],
+                              annotation_text=f"Mean: {suc['latency_ms'].mean():.0f}ms",
+                              annotation_font_color="#d4d4d4")
+            ch_lat = _chart(fig_lat)
+
+    # ── Chart 6: Error bar ───────────────────────────────────────────────────
+    ch_err = ""
+    if not api_df.empty and "success" in api_df.columns:
+        err_df = api_df[api_df["success"] == 0]
+        if not err_df.empty:
+            e_c = err_df["error_type"].value_counts().reset_index()
+            e_c.columns = ["error_type", "count"]
+            ch_err = _chart(_px.bar(e_c, x="error_type", y="count",
+                                    title="API Errors by Type", color="error_type",
+                                    color_discrete_map=ERROR_COLORS))
+
+    # ── Chart 7: HTTP status bar ─────────────────────────────────────────────
+    ch_http = ""
+    if not api_df.empty and "status_code" in api_df.columns:
+        hc = api_df["status_code"].value_counts().reset_index()
+        hc.columns = ["status_code", "count"]
+        hc["status_code"] = hc["status_code"].astype(str)
+        ch_http = _chart(_px.bar(hc, x="status_code", y="count",
+                                 title="HTTP Status Code Distribution",
+                                 color="status_code",
+                                 color_discrete_map=HTTP_COLORS), height=220)
+
+    # ── KPI cards ────────────────────────────────────────────────────────────
     kpis_html = "".join(
         f'<div class="kpi"><div class="kv">{v}</div><div class="kl">{lbl}</div></div>'
         for v, lbl in [
-            (t_stats.get("total", 0),              "Total Tickets"),
-            (t_stats.get("open", 0),               "Open"),
-            (t_stats.get("resolved", 0),           "Resolved"),
-            (f"{a_stats.get('success_rate', 0)}%", "API Success Rate"),
+            (t_stats.get("total", 0),                  "Total Tickets"),
+            (t_stats.get("open",  0),                  "Open"),
+            (t_stats.get("resolved", 0),               "Resolved"),
+            (f"{a_stats.get('success_rate', 0)}%",     "API Success Rate"),
             (f"{a_stats.get('avg_latency_ms', 0)} ms", "Avg Latency"),
         ]
     )
 
-    # Category / priority breakdown rows
-    def _rows(d):
+    # ── Breakdown tables ─────────────────────────────────────────────────────
+    def _tbl_rows(d):
         return "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in d.items())
 
-    # Recent tickets table (top 50)
+    err_rows = _tbl_rows(a_stats.get("errors_by_type", {})) or "<tr><td colspan='2'>None</td></tr>"
+
+    # ── Ticket queue rows ────────────────────────────────────────────────────
+    pri_badge = {
+        "critical": "#f87171", "high": "#fb923c",
+        "medium":   "#facc15", "low":  "#4ade80",
+    }
     ticket_rows = "".join(
         f"<tr>"
         f"<td>{t.get('ticket_id','')}</td>"
         f"<td>{t.get('customer','')}</td>"
-        f"<td>{str(t.get('subject',''))[:70]}</td>"
-        f"<td>{t.get('priority','')}</td>"
+        f"<td>{str(t.get('subject',''))[:65]}</td>"
+        f"<td style='color:{pri_badge.get(t.get(\"priority\",\"\"),\"#d4d4d4\")}'>"
+        f"  {t.get('priority','')}</td>"
         f"<td>{t.get('status','')}</td>"
         f"<td>{t.get('category') or '—'}</td>"
         f"<td>{t.get('sentiment') or '—'}</td>"
-        f"<td>{str(t.get('ai_summary') or '—')[:80]}</td>"
+        f"<td>{str(t.get('ai_summary') or '—')[:75]}</td>"
         f"</tr>"
         for t in all_tix[:50]
     )
 
-    error_rows = _rows(a_stats.get("errors_by_type", {})) or "<tr><td colspan='2'>None</td></tr>"
+    # ── Build 3-col chart grid cells safely (may be empty string) ────────────
+    def _cell(ch, title=""):
+        if not ch:
+            return ""
+        return f'<div class="chart-cell">{ch}</div>'
+
+    row1 = "".join([_cell(ch_cat), _cell(ch_pri), _cell(ch_sent)])
+    row3 = "".join([_cell(ch_lat), _cell(ch_err)])
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SupportOps AI Monitor — {now}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body{{font-family:'Courier New',monospace;background:#fff;color:#1e1e1e;
-       max-width:1200px;margin:0 auto;padding:2rem;font-size:13px;}}
-  h1{{border-bottom:3px solid #C9A84C;padding-bottom:.4rem;font-size:1.4rem;}}
-  h2{{font-size:.9rem;color:#555;margin:1.8rem 0 .4rem;text-transform:uppercase;letter-spacing:.05em;}}
-  .meta{{color:#888;font-size:.75rem;margin-bottom:1.5rem;}}
-  .kpis{{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0 1.5rem;}}
-  .kpi{{border:1px solid #ddd;padding:.8rem 1.2rem;min-width:110px;}}
-  .kv{{font-size:1.6rem;font-weight:700;color:#C9A84C;}}
-  .kl{{font-size:.7rem;color:#888;margin-top:.1rem;}}
-  table{{border-collapse:collapse;width:100%;margin-top:.5rem;}}
-  th{{background:#f4f4f4;padding:.35rem .55rem;text-align:left;border:1px solid #ddd;font-size:.75rem;}}
-  td{{padding:.3rem .55rem;border:1px solid #eee;font-size:.75rem;vertical-align:top;}}
-  tr:nth-child(even){{background:#fafafa;}}
-  @media print{{body{{padding:.5rem;}}}}
+/* ── Design tokens ─────────────────────────── */
+:root{{
+  --bg:#1e1e1e; --surface:#252526; --border:#3e3e42;
+  --text:#d4d4d4; --muted:#858585; --accent:#C9A84C;
+  --font:'JetBrains Mono','Courier New',monospace;
+}}
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{
+  font-family:var(--font); background:var(--bg); color:var(--text);
+  font-size:12px; line-height:1.5; padding:1.5rem;
+}}
+/* ── Header ────────────────────────────────── */
+.rpt-header{{
+  border-bottom:2px solid var(--accent); padding-bottom:.6rem; margin-bottom:1.2rem;
+  display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap;
+}}
+.rpt-title{{
+  font-size:1.4rem; font-weight:700; color:var(--text); letter-spacing:-.02em;
+}}
+.rpt-title span{{color:var(--accent);}}
+.rpt-meta{{color:var(--muted); font-size:.72rem;}}
+/* ── Section labels ─────────────────────────── */
+.s-label{{
+  font-size:.72rem; color:var(--accent); font-weight:600;
+  margin:1.4rem 0 .5rem; text-transform:uppercase; letter-spacing:.08em;
+}}
+.s-label::before{{content:"$ "; color:var(--muted);}}
+/* ── KPI row ────────────────────────────────── */
+.kpis{{display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:.5rem;}}
+.kpi{{
+  background:var(--surface); border:1px solid var(--border);
+  padding:.7rem 1rem; min-width:130px; border-radius:4px; flex:1;
+}}
+.kv{{font-size:1.6rem; font-weight:700; color:var(--accent);}}
+.kl{{font-size:.68rem; color:var(--muted); margin-top:.1rem;}}
+/* ── Chart grids ────────────────────────────── */
+.charts-3col{{display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:.6rem;}}
+.charts-2col{{display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:.6rem;}}
+.chart-full{{margin-bottom:.6rem;}}
+.chart-cell{{background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden;}}
+/* ── Tables ─────────────────────────────────── */
+.tables-grid{{display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:.6rem;}}
+table{{border-collapse:collapse; width:100%;}}
+th{{
+  background:#2d2d2d; color:var(--accent); padding:.3rem .5rem;
+  text-align:left; border:1px solid var(--border); font-size:.68rem;
+  font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+}}
+td{{padding:.28rem .5rem; border:1px solid var(--border); font-size:.68rem; vertical-align:top; color:var(--text);}}
+tr:nth-child(even){{background:var(--surface);}}
+.tbl-wrap{{background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden;}}
+/* ── Divider ─────────────────────────────────── */
+hr{{border:none; border-top:1px solid var(--border); margin:1rem 0;}}
+/* ── Print ───────────────────────────────────── */
+@media print{{
+  @page{{margin:1.2cm; size:A4 landscape;}}
+  body{{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    padding:.5rem;
+  }}
+  .charts-3col,.charts-2col,.chart-full,.kpis{{page-break-inside:avoid;}}
+  .ticket-section{{page-break-before:always;}}
+  .chart-cell,.tbl-wrap,.kpi{{page-break-inside:avoid;}}
+}}
 </style>
 </head>
 <body>
-<h1>&gt; SupportOps AI Monitor</h1>
-<p class="meta">Generated: {now} &nbsp;·&nbsp; Tickets shown: {min(len(all_tix),50)} of {len(all_tix)}</p>
 
-<h2>Key Metrics</h2>
+<div class="rpt-header">
+  <div class="rpt-title"><span>&gt;</span> SupportOps AI Monitor</div>
+  <div class="rpt-meta">Generated: {now} &nbsp;·&nbsp;
+    {t_stats.get("total",0)} tickets &nbsp;·&nbsp;
+    {len(all_tix)} total in DB</div>
+</div>
+
+<div class="s-label">cat overview</div>
 <div class="kpis">{kpis_html}</div>
 
-<h2>Tickets by Category</h2>
-<table><tr><th>Category</th><th>Count</th></tr>{_rows(t_stats.get('by_category', {}))}</table>
+<div class="s-label">./analytics --tickets</div>
+{'<div class="charts-3col">' + row1 + '</div>' if row1 else ''}
+{'<div class="chart-full chart-cell">' + ch_vol + '</div>' if ch_vol else ''}
 
-<h2>Tickets by Priority</h2>
-<table><tr><th>Priority</th><th>Count</th></tr>{_rows(t_stats.get('by_priority', {}))}</table>
+<div class="s-label">./health --api</div>
+{'<div class="charts-2col">' + row3 + '</div>' if row3 else ''}
+{'<div class="chart-full chart-cell">' + ch_http + '</div>' if ch_http else ''}
 
-<h2>Tickets by Sentiment</h2>
-<table><tr><th>Sentiment</th><th>Count</th></tr>{_rows(t_stats.get('by_sentiment', {}))}</table>
+<hr>
+<div class="s-label">cat stats --breakdown</div>
+<div class="tables-grid">
+  <div class="tbl-wrap"><table>
+    <tr><th>Category</th><th>Count</th></tr>
+    {_tbl_rows(t_stats.get('by_category', {}))}
+  </table></div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Priority</th><th>Count</th></tr>
+    {_tbl_rows(t_stats.get('by_priority', {}))}
+  </table></div>
+  <div class="tbl-wrap"><table>
+    <tr><th>Sentiment</th><th>Count</th></tr>
+    {_tbl_rows(t_stats.get('by_sentiment', {}))}
+  </table></div>
+  <div class="tbl-wrap"><table>
+    <tr><th>API Metric</th><th>Value</th></tr>
+    <tr><td>Total Calls</td><td>{a_stats.get('total_calls', 0)}</td></tr>
+    <tr><td>Success Rate</td><td>{a_stats.get('success_rate', 0)}%</td></tr>
+    <tr><td>Avg Latency</td><td>{a_stats.get('avg_latency_ms', 0)} ms</td></tr>
+    {err_rows}
+  </table></div>
+</div>
 
-<h2>API Health</h2>
-<table>
-  <tr><th>Metric</th><th>Value</th></tr>
-  <tr><td>Total API Calls</td><td>{a_stats.get('total_calls', 0)}</td></tr>
-  <tr><td>Success Rate</td><td>{a_stats.get('success_rate', 0)}%</td></tr>
-  <tr><td>Avg Latency</td><td>{a_stats.get('avg_latency_ms', 0)} ms</td></tr>
-</table>
-
-<h2>API Errors by Type</h2>
-<table><tr><th>Error Type</th><th>Count</th></tr>{error_rows}</table>
-
-<h2>Recent Tickets (Top 50)</h2>
-<table>
+<div class="ticket-section">
+<div class="s-label">ls tickets/ --top 50</div>
+<div class="tbl-wrap"><table>
   <tr><th>ID</th><th>Customer</th><th>Subject</th><th>Priority</th>
       <th>Status</th><th>Category</th><th>Sentiment</th><th>AI Summary</th></tr>
   {ticket_rows}
-</table>
+</table></div>
+</div>
+
 </body>
 </html>"""
 
@@ -791,19 +1014,19 @@ if st.toggle("› Show last 100 API calls", key="toggle_api_logs"):
 st.divider()
 
 # ── Section 6: Export ─────────────────────────────────────────────────────────
-_term("export --format html")
+_term("export --format pdf")
 if all_tickets:
     _report_stats  = load_ticket_stats(st.session_state.data_version)
     _report_api    = load_api_health_stats(st.session_state.data_version) if api_logs else {}
-    _report_html   = _build_html_report(all_tickets, _report_stats, _report_api)
+    _report_html   = _build_html_report(all_tickets, api_logs, _report_stats, _report_api)
     st.download_button(
-        label="⬇ Download Report (HTML)",
+        label="⬇ Download PDF Report",
         data=_report_html,
         file_name=f"supportops-report-{datetime.now().strftime('%Y%m%d-%H%M')}.html",
         mime="text/html",
         use_container_width=True,
-        help="Open the downloaded file in your browser, then Ctrl+P → Save as PDF.",
+        help="Open in browser → Ctrl+P → Save as PDF. Dark theme preserved.",
     )
-    st.caption("// open in browser → Ctrl+P → Save as PDF for a clean printout")
+    st.caption("// open in browser → Ctrl+P → Save as PDF · dark theme preserved")
 else:
     st.caption("// generate tickets first to enable report download")
