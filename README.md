@@ -15,12 +15,12 @@ pinned: false
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
   ![Status](https://img.shields.io/badge/Status-Active-success)
-  [![Technology](https://img.shields.io/badge/Technology-Python%20%7C%20Streamlit%20%7C%20Plotly-blueviolet)](https://github.com/Archit-Konde/supportops-ai-monitor)
+  [![Live Demo](https://img.shields.io/badge/Live_Demo-HuggingFace-ffd21e?style=flat&logo=huggingface&logoColor=black)](https://architechs-supportops-ai-monitor.hf.space/)
   [![Developed by Archit Konde](https://img.shields.io/badge/Developed%20by-Archit%20Konde-blue.svg)](https://github.com/Archit-Konde)
 
   An intelligent observability platform for enterprise support operations — synthesizing ticket data, GPT-powered triage intelligence, and real-time API health monitoring into a unified operational dashboard.
 
-  **[Source Code](Source%20Code/)** &nbsp;·&nbsp; **[Architecture](docs/ARCHITECTURE.md)** &nbsp;·&nbsp; **[Live Demo](https://huggingface.co/spaces/Archit-Konde/supportops-ai-monitor)** &nbsp;·&nbsp; **[Documentation](https://archit-konde.github.io/supportops-ai-monitor/)**
+  **[Source Code](Source%20Code/)** &nbsp;·&nbsp; **[Architecture](docs/ARCHITECTURE.md)** &nbsp;·&nbsp; **[Live Demo](https://architechs-supportops-ai-monitor.hf.space/)** &nbsp;·&nbsp; **[Documentation](https://archit-konde.github.io/supportops-ai-monitor/)**
 
 </div>
 
@@ -28,7 +28,7 @@ pinned: false
 
 <div align="center">
 
-    [Overview](#overview) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Structure](#project-structure) &nbsp;·&nbsp; [Quick Start](#quick-start) &nbsp;·&nbsp; [Usage Guidelines](#usage-guidelines) &nbsp;·&nbsp; [License](#license) &nbsp;·&nbsp; [Citation](#citation)
+[Overview](#overview) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Structure](#project-structure) &nbsp;·&nbsp; [Quick Start](#quick-start) &nbsp;·&nbsp; [Usage Guidelines](#usage-guidelines) &nbsp;·&nbsp; [License](#license) &nbsp;·&nbsp; [Citation](#citation)
 
 </div>
 
@@ -183,7 +183,7 @@ streamlit run "Source Code/src/app.py"
 >
 > Experience the full **SupportOps AI Monitor** dashboard directly in your browser through the working **HuggingFace Space**. This deployment features the complete simulation engine, PDF report generation, and all operational analytics — demonstrating the platform at zero cost.
 >
-> **[Launch SupportOps AI Monitor on HuggingFace](https://huggingface.co/spaces/Archit-Konde/supportops-ai-monitor)**
+> **[Launch SupportOps AI Monitor on HuggingFace](https://architechs-supportops-ai-monitor.hf.space/)**
 
 #### B. Docker Deployment
 Build and run the application in a container:
@@ -267,7 +267,7 @@ If you use this project in academic or professional work, please cite:
 
   <br>
 
-  🎫 **[Live Demo](https://huggingface.co/spaces/Archit-Konde/supportops-ai-monitor)** &nbsp;·&nbsp; 📖 **[Documentation](https://archit-konde.github.io/supportops-ai-monitor/)** &nbsp;·&nbsp; 🏗️ **[Architecture](docs/ARCHITECTURE.md)**
+  🎫 **[Live Demo](https://architechs-supportops-ai-monitor.hf.space/)** &nbsp;·&nbsp; 📖 **[Documentation](https://archit-konde.github.io/supportops-ai-monitor/)** &nbsp;·&nbsp; 🏗️ **[Architecture](docs/ARCHITECTURE.md)**
 
   ---
 
