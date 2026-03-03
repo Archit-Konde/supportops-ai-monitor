@@ -275,70 +275,70 @@ st.components.v1.html("""
     }, 1000);
 
 
-    // ——— Easter Egg System: Identity Verification ———
+    // ——— Easter Egg: Inject directly into parent document ———
+    // Scripts inside st.components.v1.html run in an iframe. Streamlit's
+    // own keyboard shortcuts run in the PARENT document. To intercept
+    // the 'C' shortcut we MUST inject our listener into the parent
+    // document so it runs in the same execution context.
     try {
-      const wp = window.top || window.parent || window;
-      if (!wp.__archit_armed_v7) {
-        wp.__archit_armed_v7 = true;
-        let buf = "";
-        let timer = null;
-        
-        const showVisualEgg = () => {
-          if (wp.document.getElementById('archit_overlay')) return;
-          const div = wp.document.createElement('div');
-          div.id = 'archit_overlay';
-          div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,10,0.95);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-family:'JetBrains Mono','Courier New',monospace;backdrop-filter:blur(10px);animation:eggFadeIn 0.4s cubic-bezier(0.4,0,0.2,1);cursor:pointer;";
-          div.innerHTML = `
-            <div style="border:1px solid rgba(201,168,76,0.5);padding:60px;background:#141414;box-shadow:0 20px 80px rgba(0,0,0,0.8);text-align:center;position:relative;overflow:hidden;border-radius:4px;">
-              <div style="position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);animation:scanline 3s linear infinite;"></div>
-              <h1 style="margin:0;font-size:2.5rem;letter-spacing:10px;font-weight:900;text-transform:uppercase;text-shadow:0 0 20px rgba(201,168,76,0.3);">Access Granted</h1>
-              <div style="margin:30px auto;width:60px;height:2px;background:#C9A84C;"></div>
-              <div style="font-size:1.1rem;color:#888;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase;">Security Clearance: <span style="color:#C9A84C;">Level 10 (Omega)</span></div>
-              <div style="font-size:1.3rem;color:#d4d4d4;font-weight:700;margin-bottom:40px;">Architect: <span style="color:#C9A84C;">Archit Konde</span></div>
-              <div style="font-size:0.9rem;color:#666;max-width:400px;line-height:1.6;font-style:italic;">"The SupportOps infrastructure is operating under peak efficiency. All intelligence cores synchronized. Systems awaiting your command."</div>
-              <div style="margin-top:50px;font-size:0.7rem;color:#444;text-transform:uppercase;letter-spacing:3px;">Click anywhere to return to monitor</div>
-            </div>
-            <style>
-              @keyframes eggFadeIn { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
-              @keyframes scanline { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }
-            </style>
-          `;
-          wp.document.body.appendChild(div);
-          const close = () => {
-            div.style.opacity = '0';
-            div.style.transition = 'opacity 0.3s';
-            setTimeout(() => div.remove(), 300);
-          };
-          div.onclick = close;
-          setTimeout(close, 8000);
-        };
+      const pdoc = window.parent.document;
+      if (!pdoc.__archit_injected) {
+        pdoc.__archit_injected = true;
+        const s = pdoc.createElement('script');
+        s.textContent = `
+          (function(){
+            var buf = "";
+            var timer = null;
+            document.addEventListener('keydown', function(e) {
+              var k = (e.key || "").toLowerCase();
+              if (!k || k.length > 1) return;
 
-        const interceptor = (e) => {
-          const k = (e.key || "").toLowerCase();
-          if (!k || k.length > 1) return;
+              // Block 'c' shortcut ONLY when completing 'arc' sequence
+              if (k === 'c' && buf.endsWith('ar')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return false;
+              }
 
-          // 'C' shortcut handling with 'delay' logic
-          // Only block if 'a' and 'r' were pressed recently
-          if (k === 'c' && buf.endsWith('ar')) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-          }
+              buf = (buf + k).slice(-6);
+              clearTimeout(timer);
+              timer = setTimeout(function(){ buf = ""; }, 1500);
 
-          buf = (buf + k).slice(-6);
-          clearTimeout(timer);
-          timer = setTimeout(() => { buf = ""; }, 1000); // 1s reset window
-
-          if (buf === "archit") {
-            showVisualEgg();
-            wp.console.log("%c ACCESS GRANTED %c Welcome, Architect.", "background:#C9A84C;color:#1e1e1e;font-weight:bold;padding:2px 5px;", "color:#C9A84C;");
-            buf = "";
-          }
-        };
-
-        wp.addEventListener('keydown', interceptor, true);
-        wp.document.addEventListener('keydown', interceptor, true);
+              if (buf === "archit") {
+                buf = "";
+                if (document.getElementById('archit_overlay')) return;
+                var div = document.createElement('div');
+                div.id = 'archit_overlay';
+                div.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,10,0.95);z-index:2147483647;display:flex;align-items:center;justify-content:center;color:#C9A84C;font-family:monospace;backdrop-filter:blur(10px);cursor:pointer;opacity:0;transition:opacity 0.4s;";
+                div.innerHTML = '<div style="border:1px solid rgba(201,168,76,0.5);padding:60px;background:#141414;box-shadow:0 20px 80px rgba(0,0,0,0.8);text-align:center;position:relative;overflow:hidden;border-radius:4px;">'
+                  + '<div style="position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);animation:architScan 3s linear infinite;"></div>'
+                  + '<h1 style="margin:0;font-size:2.5rem;letter-spacing:10px;font-weight:900;text-transform:uppercase;text-shadow:0 0 20px rgba(201,168,76,0.3);">Access Granted</h1>'
+                  + '<div style="margin:30px auto;width:60px;height:2px;background:#C9A84C;"></div>'
+                  + '<div style="font-size:1.1rem;color:#888;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase;">Security Clearance: <span style="color:#C9A84C;">Level 10 (Omega)</span></div>'
+                  + '<div style="font-size:1.3rem;color:#d4d4d4;font-weight:700;margin-bottom:40px;">Architect: <span style="color:#C9A84C;">Archit Konde</span></div>'
+                  + '<div style="font-size:0.9rem;color:#666;max-width:400px;line-height:1.6;font-style:italic;">The SupportOps infrastructure is operating under peak efficiency. All intelligence cores synchronized. Systems awaiting your command.</div>'
+                  + '<div style="margin-top:50px;font-size:0.7rem;color:#444;text-transform:uppercase;letter-spacing:3px;">Click anywhere to return to monitor</div>'
+                  + '</div>';
+                var style = document.createElement('style');
+                style.textContent = '@keyframes architScan { 0% { transform:translateX(-100%); } 100% { transform:translateX(100%); } }';
+                document.head.appendChild(style);
+                document.body.appendChild(div);
+                requestAnimationFrame(function(){ div.style.opacity = '1'; });
+                var closeFn = function(){
+                  div.style.opacity = '0';
+                  setTimeout(function(){ div.remove(); }, 400);
+                };
+                div.onclick = closeFn;
+                setTimeout(closeFn, 8000);
+                console.log("%c ACCESS GRANTED %c Welcome, Architect.", "background:#C9A84C;color:#1e1e1e;font-weight:bold;padding:2px 5px;", "color:#C9A84C;");
+              }
+            }, true); // CAPTURE phase — fires before React/Streamlit handlers
+          })();
+        `;
+        pdoc.head.appendChild(s);
       }
     } catch(e) { }
+
 
 
     var doc = window.parent.document;
