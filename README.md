@@ -18,7 +18,7 @@ pinned: false
   [![Live Demo](https://img.shields.io/badge/Live_Demo-HuggingFace-ffd21e?style=flat&logo=huggingface&logoColor=black)](https://architechs-supportops-ai-monitor.hf.space/)
   [![Developed by Archit Konde](https://img.shields.io/badge/Developed%20by-Archit%20Konde-blue.svg)](https://github.com/Archit-Konde)
 
-  An intelligent observability platform for enterprise support operations — synthesizing ticket data, GPT-powered triage intelligence, and real-time API health monitoring into a unified operational dashboard.
+  A monitoring platform for support operations that combines synthetic ticket generation, AI-powered triage, and API health tracking into a single dashboard.
 
   **[Source Code](Source%20Code/)** &nbsp;·&nbsp; **[Architecture](docs/ARCHITECTURE.md)** &nbsp;·&nbsp; **[Live Demo](https://architechs-supportops-ai-monitor.hf.space/)** &nbsp;·&nbsp; **[Documentation](https://archit-konde.github.io/supportops-ai-monitor/)**
 
@@ -34,24 +34,21 @@ pinned: false
 
 ---
 
-
-
 <!-- OVERVIEW -->
 <a name="overview"></a>
 ## Overview
 
-**SupportOps AI Monitor** is an enterprise-grade observability platform that models the complete lifecycle of a modern support operations pipeline — from synthetic ticket generation and intelligent triage to real-time API health monitoring and operational analytics. The system is engineered to demonstrate how engineering teams can transform raw support data into structured, actionable intelligence.
+**SupportOps AI Monitor** is a tool built to help teams understand the lifecycle of support tickets. It simulates a production environment by generating synthetic tickets, triaging them using GPT-4o-mini (or a simulation engine), and tracking the performance of these API calls in real-time.
 
-The platform implements a multi-stage data pipeline where tickets are generated, classified by GPT-4o-mini (or a statistically faithful simulation engine), persisted in SQLite, and rendered through an interactive Streamlit dashboard with Plotly visualisations.
+The project demonstrates how to structure support data and turn it into clear metrics for operational review. It uses a multi-stage pipeline: tickets are created, classified, stored in a local SQLite database, and visualized on a dashboard.
 
 > [!IMPORTANT]
-> ### No API Key Needed
-> The dashboard works out of the box. A built-in simulation engine generates realistic triage results — latency curves, error distributions, and classification outputs — so you can explore every feature without provisioning an OpenAI key.
+> ### Simulation Mode
+> You do not need an OpenAI API key to use this. The tool has a built-in simulation engine that models realistic triage results including latency, errors, and classification. This allows you to test the dashboard's features immediately without any setup cost.
 
 > [!NOTE]
-> ### Beyond a Demo
-> This isn't a mock-up. The simulation models Gaussian latency (μ 820ms), a 10% error rate across three failure types, and multi-category sentiment classification — mirroring how a production triage pipeline actually behaves.
-
+> ### System Modelling
+> This dashboard models real-world patterns such as Gaussian latency (averaging 820ms) and common API failure types. The goal is to provide a realistic look at how a support system performs under different conditions.
 
 ---
 
@@ -61,26 +58,21 @@ The platform implements a multi-stage data pipeline where tickets are generated,
 
 | Feature | Description |
 |---------|-------------|
-| **Ticket Generation Engine** | Generates realistic synthetic tickets from **Faker-powered templates** across five operational categories — API, billing, account, safety, and general. |
-| **Intelligent Triage System** | Classifies tickets using **OpenAI GPT-4o-mini** with automatic fallback to a **Gaussian simulation engine** when no API key is present. |
-| **Observability Dashboard** | Real-time KPIs, interactive **Plotly visualisations**, and operational trend analysis rendered through a polished **Streamlit** interface. |
-| **API Health Monitor** | Tracks latency distributions, success rates, HTTP status codes, and error-type breakdowns across the triage pipeline. |
-| **PDF Report Generation** | Downloadable operational reports with light-theme styling, brand accents, and structured data tables via **xhtml2pdf**. |
-| **CSV / Excel Upload** | Ingest external ticket data directly through the sidebar for custom analysis and triage. |
-| **Zero-Cost Demo Mode** | Full functionality without an OpenAI API key — simulation mode is indistinguishable from live triage in the dashboard. |
-
-> [!NOTE]
-> ### Interactive Design
-> The dashboard features a premium, terminal-inspired dark theme with yellow accents, smooth animations, a back-to-top button, and a hidden developer easter egg. The visual language is designed for clarity and operational focus.
+| **Ticket Generation** | Creates synthetic tickets using **Faker** across categories like API, billing, account, and safety. |
+| **AI Triage** | Uses **GPT-4o-mini** to classify tickets. It automatically falls back to a simulation engine if no API key is set. |
+| **Operational Dashboard** | Displays KPIs and charts for ticket volume, priority, and sentiment using **Streamlit** and **Plotly**. |
+| **Health Monitoring** | Logs API latency, success rates, and HTTP status codes to monitor system performance. |
+| **Reporting** | Generates downloadable PDF reports with data tables and charts using **xhtml2pdf**. |
+| **Data Import** | Allows you to upload your own CSV or Excel files for custom triage and analysis. |
+| **Developer Tools** | Includes a terminal-themed UI, a back-to-top button for long pages, and a hidden developer menu. |
 
 ### Tech Stack
 - **Language**: Python 3.11+
-- **Frontend**: **Streamlit** & **Plotly** (Interactive Charts & KPIs)
-- **Intelligence**: **OpenAI GPT-4o-mini** (with simulation fallback)
-- **Data Layer**: **Pandas** & **SQLite** (Persistence & Analytics)
-- **Testing**: **Pytest** (46-test suite covering all business logic modules)
-- **Deployment**: **Docker** & **HuggingFace Spaces**
-- **Reporting**: **xhtml2pdf** & **Kaleido** (PDF Generation)
+- **Frontend**: **Streamlit** (UI) and **Plotly** (Charts)
+- **AI**: **OpenAI GPT-4o-mini** (with simulation fallback)
+- **Storage**: **SQLite** (Local Database) and **Pandas** (Data Processing)
+- **Testing**: **Pytest** (Automated logic tests)
+- **Deployment**: **Docker** and **HuggingFace Spaces**
 
 ---
 
@@ -91,40 +83,26 @@ The platform implements a multi-stage data pipeline where tickets are generated,
 ```python
 supportops-ai-monitor/
 │
-├── docs/                                # Documentation & GitHub Pages
-│   ├── index.html                       # Terminal-style landing page
-│   ├── 404.html                         # Custom error page
-│   ├── ARCHITECTURE.md                  # Technical deep-dive & diagrams
-│   ├── sample-tickets.csv               # Example CSV for upload feature
-│   └── assets/                          # Visual assets
+├── docs/                                # Documentation files
+│   ├── ARCHITECTURE.md                  # Tech deep-dive
+│   ├── sample-tickets.csv               # Example data for testing
+│   └── assets/                          # Images and icons
 │
-├── Source Code/                          # Application Source Layer
-│   ├── src/                             # Python source modules
-│   │   ├── app.py                       # Streamlit dashboard — UI & rendering
-│   │   ├── ai_triage.py                 # GPT-4o-mini triage & simulation engine
-│   │   ├── database.py                  # SQLite persistence layer
-│   │   └── ticket_generator.py          # Faker-powered ticket generator
-│   ├── tests/                           # Pytest test suite
-│   │   ├── conftest.py                  # Shared fixtures
-│   │   ├── test_ai_triage.py            # Triage module tests
-│   │   ├── test_database.py             # Database module tests
-│   │   └── test_ticket_generator.py     # Generator module tests
-│   ├── infrastructure/                  # Deployment documentation
-│   │   └── huggingface.md               # HuggingFace Spaces guide
-│   ├── .streamlit/                      # Streamlit configuration
-│   │   └── config.toml                  # Theme & server settings
-│   ├── Dockerfile                       # Container deployment
-│   ├── .dockerignore                    # Docker build exclusions
-│   ├── pytest.ini                       # Test discovery config
-│   └── requirements.txt                 # Python dependencies
+├── Source Code/                         # Application source code
+│   ├── src/                             # Core Python modules
+│   │   ├── app.py                       # Dashboard and UI logic
+│   │   ├── ai_triage.py                 # Triage and simulation logic
+│   │   ├── database.py                  # Database operations
+│   │   └── ticket_generator.py          # Synthetic data logic
+│   ├── tests/                           # Automated test suite
+│   ├── infrastructure/                  # Deployment guides
+│   ├── .streamlit/                      # UI configuration
+│   ├── Dockerfile                       # Container setup
+│   └── requirements.txt                 # Dependencies
 │
-├── .github/                             # GitHub workflows & templates
-├── .gitattributes                       # Line ending normalisation
-├── .gitignore                           # Version control exclusions
-├── CITATION.cff                         # Academic citation metadata
-├── codemeta.json                        # Machine-readable software metadata
+├── CITATION.cff                         # Citation info
 ├── LICENSE                              # MIT License
-└── README.md                            # Project entrance (this file)
+└── README.md                            # This file
 ```
 
 ---
@@ -134,79 +112,61 @@ supportops-ai-monitor/
 ## Quick Start
 
 ### 1. Prerequisites
-- **Python 3.11+**: Required for runtime execution. [Download Python](https://www.python.org/downloads/)
-- **Git**: For version control and cloning. [Download Git](https://git-scm.com/downloads)
-- **Docker**: (Optional) For containerised deployment. [Download Docker](https://www.docker.com/products/docker-desktop/)
+- **Python 3.11+**
+- **Git**
+- **Docker** (Optional, for containers)
 
-### 2. Installation & Setup
+### 2. Setup
 
 #### Step 1: Clone the Repository
-Open your terminal and clone the repository:
 ```bash
 git clone https://github.com/Archit-Konde/supportops-ai-monitor.git
 cd supportops-ai-monitor
 ```
 
-#### Step 2: Configure Virtual Environment
-Prepare an isolated environment to manage dependencies:
-
-**Windows (Command Prompt / PowerShell):**
+#### Step 2: Virtual Environment
+**Windows:**
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-**macOS / Linux (Terminal):**
+**macOS / Linux:**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-#### Step 3: Install Core Dependencies
-Install the required libraries from the source directory:
+#### Step 3: Install Dependencies
 ```bash
 pip install -r "Source Code/requirements.txt"
 ```
 
-### 3. Execution
+### 3. Running the App
 
-#### A. Interactive Dashboard
-Launch the Streamlit-based observability dashboard:
+#### A. Local Dashboard
 ```bash
 streamlit run "Source Code/src/app.py"
 ```
-
-**Dashboard Access**: Once initialised, navigate to **http://localhost:8501**. Use the sidebar controls to generate tickets, adjust batch sizes, and observe the triage pipeline in real time.
+The app will be available at **http://localhost:8501**.
 
 > [!TIP]
-> ### Live Operational Demo
->
-> Experience the full **SupportOps AI Monitor** dashboard directly in your browser through the working **HuggingFace Space**. This deployment features the complete simulation engine, PDF report generation, and all operational analytics — demonstrating the platform at zero cost.
->
-> **[Launch SupportOps AI Monitor on HuggingFace](https://architechs-supportops-ai-monitor.hf.space/)**
+> ### Online Demo
+> You can try the live version of the dashboard here without installing anything:  
+> **[Open Live Demo on HuggingFace](https://architechs-supportops-ai-monitor.hf.space/)**
 
-#### B. Docker Deployment
-Build and run the application in a container:
+#### B. Using Docker
 ```bash
 cd "Source Code"
 docker build -t supportops-ai-monitor .
 docker run -p 8501:8501 supportops-ai-monitor
 ```
 
-#### C. Test Suite
-Run the full pytest suite to validate all business logic modules:
+#### C. Running Tests
 ```bash
 cd "Source Code"
 pytest
 ```
-
-> [!NOTE]
-> ### OpenAI API Key (Optional)
-> To enable live GPT-4o-mini triage instead of simulation mode, create a `.env` file in the project root:
-> ```
-> OPENAI_API_KEY=your_openai_api_key_here
-> ```
-> The dashboard will automatically detect the key and switch to live mode.
 
 ---
 
@@ -214,21 +174,17 @@ pytest
 <a name="usage-guidelines"></a>
 ## Usage Guidelines
 
-This repository is openly shared to support learning and knowledge exchange across the engineering community.
-
 **For Engineers**
 
-Use this project as a reference implementation for building **observability dashboards**, **simulation engines**, and **AI-powered triage systems**. The source code is structured for clarity and annotated for self-paced exploration.
+Use this project as a reference for building dashboards, data simulations, or AI pipelines. The code is structured to be readable and easy to follow.
 
 **For Educators**
 
-This project may serve as a practical case study for courses in **Software Engineering**, **Data Visualisation**, **AI Integration**, and **DevOps**. Attribution is appreciated when utilising content.
+This project can be used as a case study for software engineering, data visualization, or AI integration. Please attribute the work if you use it in your curriculum.
 
 **For Researchers**
 
-The architecture and simulation methodology may provide insights into **synthetic data generation**, **API health modelling**, and **operational intelligence design patterns**.
-
-
+The simulation logic and data pipeline provide a starting point for studying synthetic data and system performance modeling.
 
 ---
 
@@ -236,10 +192,7 @@ The architecture and simulation methodology may provide insights into **syntheti
 <a name="license"></a>
 ## License
 
-This repository is made available under the **MIT License**. See the [LICENSE](LICENSE) file for complete terms.
-
-> [!NOTE]
-> **Summary**: You are free to share and adapt this content for any purpose, even commercially, as long as you provide appropriate attribution to the original author.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
 
 Copyright © 2026 Archit Konde
 
@@ -249,7 +202,7 @@ Copyright © 2026 Archit Konde
 <a name="citation"></a>
 ## Citation
 
-If you use this project in academic or professional work, please cite:
+If you use this project in your work, please cite it:
 
 ```bibtex
 @software{konde2026supportops,
