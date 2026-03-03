@@ -5,7 +5,7 @@ enableXsrfProtection = true
 
 [theme]
 base = "dark"
-primaryColor = "#6366f1"
+primaryColor = "#C9A84C"
 backgroundColor = "#1e1e1e"
 secondaryBackgroundColor = "#262626"
 textColor = "#d4d4d4"

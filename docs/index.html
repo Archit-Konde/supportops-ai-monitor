@@ -818,13 +818,14 @@
       }
     });
 
-    /* Ctrl+K / Cmd+K toggle */
+    /* Ctrl+K / Cmd+K toggle — capture phase to intercept before Chrome */
     document.addEventListener('keydown', function(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        e.stopImmediatePropagation();
         palette.hidden ? open() : close();
       }
-    });
+    }, { capture: true });
 
     /* Backdrop click to close */
     palette.querySelector('.cmd-backdrop').addEventListener('click', close);
@@ -887,6 +888,8 @@
 
     var buffer = '';
     var active = false;
+    var unknownCount = 0;
+    var MAX_UNKNOWN = 5;
 
     /* Click terminal area to activate */
     var termBody = prompt.closest('.term-body');
@@ -924,6 +927,7 @@
       addPromptLine(cmd);
 
       if (lower === 'help') {
+        unknownCount = 0;
         addResponse('Available commands:', 'accent');
         addResponse('  help          — show this message');
         addResponse('  ls            — list project features');
@@ -958,8 +962,14 @@
       } else if (lower === '') {
         /* empty enter — do nothing */
       } else {
-        addResponse('command not found: ' + cmd.trim(), 'error');
-        addResponse("Type 'help' for available commands.");
+        unknownCount++;
+        if (unknownCount >= MAX_UNKNOWN) {
+          addResponse("Alright, that's enough tomfoolery for one session.", 'error');
+          addResponse("Type 'help' to see what actually works here.");
+        } else {
+          addResponse('command not found: ' + cmd.trim(), 'error');
+          addResponse("Type 'help' for available commands.");
+        }
       }
     }
 

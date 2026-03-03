@@ -44,7 +44,9 @@ HTTP_COLORS      = {"200": COLORS["success"], "429": COLORS["warning"], "500": C
 
 CHART_H_PRIMARY   = 300
 CHART_H_SECONDARY = 220
-CHART_MARGIN      = dict(t=32, b=0, l=0, r=0)
+CHART_MARGIN      = dict(t=48, b=0, l=0, r=0)
+PLOTLY_CONFIG     = {"displaylogo": False,
+                     "modeBarButtonsToRemove": ["select2d", "lasso2d", "autoScale2d"]}
 
 # ── Global CSS — VS Code Dark+ terminal aesthetic ─────────────────────────────
 st.markdown("""
@@ -87,7 +89,67 @@ footer { visibility: hidden !important; }
   font-size: 0.72rem; color: #858585; z-index: 999; font-family: 'JetBrains Mono', monospace; }
 .custom-footer a { color: #C9A84C; text-decoration: none; }
 .main .block-container { padding-bottom: 4rem !important; }
+/* Terminal-style multiselect tags — outline, not filled */
+[data-testid="stMultiSelect"] [data-baseweb="tag"]
+  { background-color: transparent !important; border: 1px solid #C9A84C !important;
+    color: #C9A84C !important; border-radius: 2px !important; }
+[data-testid="stMultiSelect"] [data-baseweb="tag"] span,
+[data-testid="stMultiSelect"] [data-baseweb="tag"] [role="presentation"]
+  { color: #C9A84C !important; }
+/* Hide Streamlit header anchor icon */
+[data-testid="StyledLinkIconContainer"] { display: none !important; }
+/* Fix Material Icon ligatures showing as literal text */
+[data-testid="stSidebarCollapseButton"] span { font-size: 0 !important; }
+/* Fix upload widget text clipping in narrow sidebar */
+[data-testid="stFileUploader"] label,
+[data-testid="stFileUploader"] span
+  { word-wrap: break-word !important; overflow-wrap: break-word !important;
+    font-size: 0.78rem !important; }
+/* Print styles for PDF export */
+@media print {
+  section[data-testid="stSidebar"], header[data-testid="stHeader"],
+  .custom-footer, .back-to-top, .stButton { display: none !important; }
+  .stApp { background: white !important; }
+  [data-testid="stMetricValue"] { color: #1e1e1e !important; }
+  h1,h2,h3,p,span,div { color: #1e1e1e !important; }
+  [data-testid="metric-container"] { border: 1px solid #ccc !important; background: white !important; }
+}
 </style>
+""", unsafe_allow_html=True)
+
+# ── Fixed footer + scroll-to-top (rendered early so st.stop() can't hide them) ─
+st.markdown(
+    '<div class="custom-footer">'
+    '&copy; 2026 All rights reserved. Designed &amp; Developed by '
+    '<a href="https://archit-konde.github.io/" target="_blank">Archit Konde</a>'
+    '</div>',
+    unsafe_allow_html=True,
+)
+
+st.markdown("""
+<style>
+.back-to-top {
+  position: fixed; bottom: 3.5rem; right: 2rem; z-index: 998;
+  width: 38px; height: 38px; background: #252526; border: 1px solid #3e3e42;
+  color: #C9A84C; font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+  cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity 0.2s, visibility 0.2s, border-color 0.2s, background 0.2s,
+              color 0.2s, transform 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; border-radius: 4px;
+}
+.back-to-top.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+.back-to-top:hover { background: #C9A84C; border-color: #C9A84C; color: #1e1e1e; }
+</style>
+<a href="#" class="back-to-top" id="backToTop" title="Back to top"
+   onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">&#8593;</a>
+<script>
+(function(){
+  var btn=document.getElementById('backToTop');
+  if(!btn)return;
+  window.addEventListener('scroll',function(){btn.classList.toggle('visible',window.scrollY>400);});
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -247,7 +309,36 @@ with st.sidebar:
     )
 
     st.divider()
-    st.caption("© 2026 [Archit Konde](https://archit-konde.github.io) · [GitHub](https://github.com/Archit-Konde)")
+
+    # ── Export + Reset ─────────────────────────────────────────────────────────
+    st.subheader("Export")
+    if st.button("Save Report as PDF", use_container_width=True):
+        st.components.v1.html(
+            "<script>window.parent.print();</script>", height=0,
+        )
+
+    st.divider()
+
+    if st.button("Reset All Data", use_container_width=True):
+        st.session_state.confirm_reset = True
+
+    if st.session_state.get("confirm_reset"):
+        st.warning("This will permanently delete all tickets and API logs.")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Confirm", type="primary", use_container_width=True):
+                result = db.clear_all_data()
+                st.success(
+                    f"Cleared {result['tickets']} tickets, "
+                    f"{result['logs']} API logs."
+                )
+                st.session_state.pop("confirm_reset", None)
+                st.session_state.data_version += 1
+                st.rerun()
+        with c2:
+            if st.button("Cancel", use_container_width=True):
+                st.session_state.pop("confirm_reset", None)
+                st.rerun()
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 all_tickets = load_all_tickets(st.session_state.data_version)
@@ -321,7 +412,7 @@ with col1:
             hole=0.4,
         )
         fig.update_layout(height=CHART_H_PRIMARY, margin=CHART_MARGIN)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 with col2:
     if not ticket_df.empty and "priority" in ticket_df.columns:
@@ -349,7 +440,7 @@ with col2:
             xaxis_title="",
             yaxis_title="Count",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 with col3:
     if not ticket_df.empty and "sentiment" in ticket_df.columns:
@@ -372,7 +463,7 @@ with col3:
                 xaxis_title="",
                 yaxis_title="Count",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 if not ticket_df.empty and "created_at" in ticket_df.columns:
     ticket_df["created_date"] = pd.to_datetime(ticket_df["created_at"]).dt.date
@@ -391,7 +482,7 @@ if not ticket_df.empty and "created_at" in ticket_df.columns:
         xaxis_title="",
         yaxis_title="Tickets",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 st.divider()
 
@@ -421,7 +512,7 @@ if not api_df.empty:
                 annotation_text=f"Mean: {success_df['latency_ms'].mean():.0f}ms",
             )
             fig.update_layout(height=CHART_H_PRIMARY, margin=CHART_MARGIN)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
     with col2:
         error_df = api_df[api_df["success"] == 0]
@@ -443,7 +534,7 @@ if not api_df.empty:
                 xaxis_title="",
                 yaxis_title="Error Count",
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
         else:
             st.success("No API errors recorded.")
 
@@ -465,7 +556,7 @@ if not api_df.empty:
         xaxis_title="HTTP Status Code",
         yaxis_title="Count",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 st.divider()
 
@@ -526,12 +617,3 @@ with st.expander("$ tail -f api.log (last 100 calls)"):
         st.dataframe(api_df.head(100), use_container_width=True, height=300)
     else:
         st.write("No API logs yet.")
-
-# ── Fixed footer ──────────────────────────────────────────────────────────────
-st.markdown(
-    '<div class="custom-footer">'
-    '&copy; 2026 All rights reserved. Designed &amp; Developed by '
-    '<a href="https://archit-konde.github.io/" target="_blank">Archit Konde</a>'
-    '</div>',
-    unsafe_allow_html=True,
-)

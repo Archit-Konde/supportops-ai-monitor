@@ -213,6 +213,22 @@ def get_api_logs(limit: int = 200):
         conn.close()
 
 
+def clear_all_data():
+    """Delete all tickets and API health logs. Returns counts of deleted rows."""
+    conn = get_connection()
+    try:
+        tickets_deleted = conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
+        logs_deleted = conn.execute(
+            "SELECT COUNT(*) FROM api_health_logs"
+        ).fetchone()[0]
+        conn.execute("DELETE FROM tickets")
+        conn.execute("DELETE FROM api_health_logs")
+        conn.commit()
+        return {"tickets": tickets_deleted, "logs": logs_deleted}
+    finally:
+        conn.close()
+
+
 def get_api_health_stats():
     """Return aggregate API health stats."""
     conn = get_connection()
