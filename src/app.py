@@ -22,6 +22,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
 # ── Design tokens ─────────────────────────────────────────────────────────────
 COLORS = {
     "bg":      "#1e1e1e",
@@ -466,6 +467,7 @@ def _build_pdf_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats:
             <div class="meta">Generated: {now} | Total Tickets: {t_stats.get('total', 0)} | System Status: Optimal</div>
         </div>
 
+
         <div class="section-title">Operational Overview</div>
         {kpis_html}
 
@@ -565,6 +567,7 @@ with st.sidebar:
     st.caption("// AI Platform · Support Operations")
     st.divider()
 
+
     st.subheader("Data Controls")
 
     n_tickets = st.slider("Tickets to generate", min_value=10, max_value=200, value=50, step=10)
@@ -586,6 +589,7 @@ with st.sidebar:
 
             with st.spinner("Running AI triage..."):
                 stats = ai_triage.triage_batch(tickets, progress_callback=update_progress)
+
 
             progress_bar.empty()
             status_text.empty()
@@ -655,6 +659,7 @@ with st.sidebar:
                             uploaded_tickets, progress_callback=upload_update
                         )
 
+
                     upload_progress.empty()
                     upload_status.empty()
                     st.success(
@@ -684,7 +689,7 @@ with st.sidebar:
 
     # ── Export + Reset ─────────────────────────────────────────────────────────
     st.subheader("Export")
-    st.caption("// HTML report download available below the dashboard")
+
 
     st.divider()
 
@@ -726,6 +731,7 @@ st.markdown(
     '<span style="color:#C9A84C;">&gt;</span> SupportOps AI Monitor</h1>',
     unsafe_allow_html=True,
 )
+
 st.caption(
     f"Last updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC  ·  "
     f"Showing {len(filtered_tickets)} of {len(all_tickets)} tickets"
@@ -933,6 +939,9 @@ if not ticket_df.empty:
     display_cols = ["ticket_id", "created_at", "customer", "subject", "priority", "status", "category", "sentiment", "ai_summary"]
     display_cols = [c for c in display_cols if c in ticket_df.columns]
     display_df = ticket_df[display_cols].copy()
+    if "ai_summary" in display_df.columns:
+        display_df = display_df.rename(columns={"ai_summary": "Ops Insight"})
+
 
     def priority_badge(val):
         base = "border-radius: 3px; padding: 1px 6px; font-size: 0.75rem; font-weight: 600; font-family: 'JetBrains Mono', monospace;"
@@ -995,7 +1004,7 @@ if all_tickets:
     _report_stats  = load_ticket_stats(st.session_state.data_version)
     _report_api    = load_api_health_stats(st.session_state.data_version) if api_logs else {}
     
-    with st.spinner("Generating beautiful PDF report..."):
+    with st.spinner("Finalizing report..."):
         _report_pdf = _build_pdf_report(all_tickets, api_logs, _report_stats, _report_api)
 
     if _report_pdf:
@@ -1007,9 +1016,8 @@ if all_tickets:
             use_container_width=True,
         )
     else:
-        st.error("Failed to generate PDF report. Please check if 'kaleido' and 'xhtml2pdf' are installed correctly.")
-    
-    st.caption("// beautiful spacious PDF report · white theme with yellow accents")
+        st.error("Failed to generate report. Please verify system dependencies.")
 else:
-    st.caption("// generate tickets first to enable report download")
+    st.caption("Population of system data required for report generation.")
+
 
