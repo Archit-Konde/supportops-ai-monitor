@@ -273,7 +273,29 @@ st.components.v1.html("""
       );
 
     }, 500);
+
+    // ——— Easter Egg: Typing 'archit' ———
+    let buffer = "";
+    const target = "archit";
+    window.parent.document.addEventListener('keydown', (e) => {
+      buffer = (buffer + e.key.toLowerCase()).slice(-target.length);
+      if (buffer === target) {
+        pc.log(
+          "%c ACCESS GRANTED %c\\n" +
+          "—————————————————————————————————————————————————————————————————————\\n" +
+          "ID: ARCHIT KONDE | ROLE: LEAD ARCHITECT\\n" +
+          "STATUS: SYSTEM BYPASS ACTIVE | CLEARANCE: LEVEL 10 (OMEGA)\\n\\n" +
+          "The SupportOps infrastructure is operating under peak efficiency. \\n" +
+          "Intelligence cores synchronized. Operational narrativization active.\\n" +
+          "—————————————————————————————————————————————————————————————————————",
+          "background:#4CAF50; color:white; font-weight:bold; font-size:14px; padding:2px 5px; border-radius:2px; font-family:monospace;",
+          "color:#4CAF50; font-weight:bold; font-family:monospace;"
+        );
+        buffer = "";
+      }
+    });
   } catch(e) {}
+
 
 
   try {
