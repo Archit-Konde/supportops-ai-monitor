@@ -130,30 +130,65 @@ header[data-testid="stHeader"] { display: none !important; }
   [data-testid="metric-container"] { border: 1px solid #ccc !important; background: white !important; }
 }
 </style>
+""", unsafe_allow_html=True)
+
+# ── Fix expander "arrow_right" ligature text ─────────────────────────────────
+# Streamlit strips <script> from st.markdown, so we must use components.v1.html
+# which creates a real iframe. From there, window.parent.document reaches the
+# Streamlit DOM. MutationObserver re-runs on every change to catch late renders.
+# ── All JS fixes — must use components.v1.html (Streamlit strips <script> from st.markdown) ─
+st.components.v1.html("""
 <script>
-// Remove literal "arrow_right" text from Streamlit expander summaries.
-// Material Icons font often fails to load on HuggingFace (CSP), leaving
-// the ligature text visible. This walks text nodes and strips it.
 (function(){
-  function fix(){
-    document.querySelectorAll('details summary').forEach(function(s){
-      var tw=document.createTreeWalker(s,NodeFilter.SHOW_TEXT,null,false);
+  var doc = window.parent.document;
+
+  /* 1. Strip "arrow_right" / "arrow_drop_down" ligature text from expanders */
+  function fixExpanders(){
+    doc.querySelectorAll('details summary').forEach(function(s){
+      var tw = doc.createTreeWalker(s, NodeFilter.SHOW_TEXT, null, false);
       var n;
-      while(n=tw.nextNode()){
-        if(n.textContent.indexOf('arrow_right')!==-1){
-          n.textContent=n.textContent.replace(/arrow_right/g,'');
-        }
-        if(n.textContent.indexOf('arrow_drop_down')!==-1){
-          n.textContent=n.textContent.replace(/arrow_drop_down/g,'');
-        }
+      while(n = tw.nextNode()){
+        if(n.textContent.indexOf('arrow_right') !== -1)
+          n.textContent = n.textContent.replace(/arrow_right/g, '');
+        if(n.textContent.indexOf('arrow_drop_down') !== -1)
+          n.textContent = n.textContent.replace(/arrow_drop_down/g, '');
       }
     });
   }
-  fix();
-  new MutationObserver(fix).observe(document.body,{childList:true,subtree:true});
+  fixExpanders();
+  new MutationObserver(fixExpanders).observe(doc.body, {childList:true, subtree:true});
+
+  /* 2. Back-to-top button — scroll listener on Streamlit's inner container */
+  var btn = doc.getElementById('backToTop');
+  if(btn){
+    function getContainer(){
+      return doc.querySelector('[data-testid="stMainBlockContainer"]')
+          || doc.querySelector('[data-testid="stAppViewContainer"]')
+          || doc.querySelector('.main')
+          || null;
+    }
+    function onScroll(){
+      var c = getContainer();
+      var top = c ? c.scrollTop : window.parent.scrollY;
+      btn.classList.toggle('visible', top > 400);
+    }
+    /* Capture-phase listener catches scroll events from any target */
+    doc.addEventListener('scroll', onScroll, true);
+    /* Also poll for container and attach directly */
+    var poll = setInterval(function(){
+      var c = getContainer();
+      if(c){ c.addEventListener('scroll', onScroll); clearInterval(poll); }
+    }, 300);
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      var c = getContainer();
+      if(c) c.scrollTo({top:0, behavior:'smooth'});
+      else  window.parent.scrollTo({top:0, behavior:'smooth'});
+    });
+  }
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ── Fixed footer + scroll-to-top (rendered early so st.stop() can't hide them) ─
 st.markdown(
@@ -180,38 +215,6 @@ st.markdown("""
 .back-to-top:hover { background: #C9A84C; border-color: #C9A84C; color: #1e1e1e; }
 </style>
 <a href="#" class="back-to-top" id="backToTop" title="Back to top">&#8593;</a>
-<script>
-(function(){
-  var btn = document.getElementById('backToTop');
-  if (!btn) return;
-
-  function getContainer() {
-    return document.querySelector('[data-testid="stMainBlockContainer"]') || window;
-  }
-
-  function onScroll() {
-    var c = getContainer();
-    var top = (c === window) ? window.scrollY : c.scrollTop;
-    btn.classList.toggle('visible', top > 400);
-  }
-
-  // Listen on window as fallback (capture phase catches all scroll events)
-  window.addEventListener('scroll', onScroll, true);
-
-  // Poll until Streamlit's main container mounts, then attach directly
-  var poll = setInterval(function() {
-    var c = document.querySelector('[data-testid="stMainBlockContainer"]');
-    if (c) { c.addEventListener('scroll', onScroll); clearInterval(poll); }
-  }, 300);
-
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-    var c = getContainer();
-    if (c === window) { window.scrollTo({top:0,behavior:'smooth'}); }
-    else              { c.scrollTo({top:0,behavior:'smooth'}); }
-  });
-})();
-</script>
 """, unsafe_allow_html=True)
 
 
