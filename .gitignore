@@ -1,13 +1,52 @@
-.env
-db/
+# ───────────────────────────────────────────────
+# SupportOps AI Monitor — .gitignore
+# ───────────────────────────────────────────────
+
+# ─── Python ───────────────────────────────────
 __pycache__/
-*.pyc
-.DS_Store
+*.py[cod]
+*.pyo
 *.egg-info/
+*.egg
 dist/
 build/
+*.whl
+
+# ─── Virtual Environments ─────────────────────
 .venv/
 venv/
+env/
+
+# ─── Environment & Secrets ────────────────────
+.env
+.env.local
+.env.production
+.streamlit/secrets.toml
+
+# ─── Runtime Data (generated at startup) ──────
+db/
 data/
 logs/
+*.sqlite
+*.sqlite3
+*.db
+
+# ─── OS Files ─────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── IDE / Editor ─────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ─── AI Agent Contexts (dev-only) ─────────────
 CLAUDE.md
+AGENTS.md
+.cursor/
+.codex/

@@ -22,6 +22,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
 # ── Design tokens ─────────────────────────────────────────────────────────────
 COLORS = {
     "bg":      "#1e1e1e",
@@ -155,16 +156,83 @@ header[data-testid="stHeader"] {
 /* Minimal print fallback — hides chrome if user hits Ctrl+P on dashboard.
    For a proper PDF, use the Download PDF Report button instead. */
 @media print {
+  /* 1. Hide UI elements */
   section[data-testid="stSidebar"],
   header[data-testid="stHeader"],
   .custom-footer, .back-to-top, iframe,
   [data-testid="stSidebarCollapseButton"],
   [data-testid="stBottomBlockContainer"],
-  .stButton { display: none !important; }
-  .main { margin-left: 0 !important; width: 100% !important; }
-  [data-testid="stMainBlockContainer"] { max-width: 100% !important; }
+  [data-testid="stFileUploader"],
+  .stButton, .stCheckbox, .stToggle, .stDownloadButton,
+  #MainMenu, footer, .stSpinner, .stMetricDelta { display: none !important; }
+
+  /* 2. Base Page Reset */
+  html, body, .stApp, .main, .stAppViewContainer, .stAppMain, 
+  [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"] {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  [data-testid="stMainBlockContainer"] { 
+    max-width: 100% !important; 
+    padding: 0 !important; 
+    margin: 0 !important;
+  }
+
+  /* 3. Headers and Terminal Cmds */
+  h1, h2, h3, h4, h5, h6, p, span, div, label, .term-cmd { 
+    color: black !important; 
+    background-color: transparent !important;
+    text-shadow: none !important;
+  }
+  
+  .term-cmd {
+    border-bottom: 2px solid #C9A84C !important;
+    padding-bottom: 4px !important;
+    margin: 2rem 0 0.5rem 0 !important;
+    font-weight: 700 !important;
+  }
+  .term-cmd span { color: #C9A84C !important; }
+
+  /* 4. KPI Metrics - Keep them simple and bold */
+  [data-testid="metric-container"] {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    margin-bottom: 10px;
+  }
+  [data-testid="stMetricValue"] { color: #C9A84C !important; font-weight: 800 !important; }
+  [data-testid="stMetricLabel"] { color: #333333 !important; }
+
+  /* 5. Charts & DataFrames - THE FIX */
+  /* We use invert(1) hue-rotate(180deg) to flip the dark theme to light theme
+     for these specific complex components while preserving colors. */
+  [data-testid="stPlotlyChart"], [data-testid="stDataFrame"] {
+    filter: invert(1) hue-rotate(180deg) contrast(0.9) brightness(1.1) !important;
+    background-color: transparent !important;
+    margin-bottom: 2rem !important;
+    page-break-inside: avoid !important;
+    display: block !important;
+  }
+  
+  /* Ensure the surrounding container doesn't have a dark background */
+  .element-container, .stPlotlyChart, .stDataFrame {
+    background-color: white !important;
+  }
+
+  /* 6. General Cleanup */
+  * { 
+    -webkit-print-color-adjust: exact !important; 
+    print-color-adjust: exact !important;
+  }
+  
+  hr { display: none !important; }
 }
 </style>
+
+
+
+
+
 """, unsafe_allow_html=True)
 
 # ── JS fixes — st.markdown strips <script>, so use components.v1.html ────────
@@ -174,12 +242,118 @@ st.components.v1.html("""
 <script>
 (function(){
   try {
+    const pc = window.parent.console;
+    setTimeout(() => {
+      pc.clear();
+      pc.log(
+        "%c %c > SupportOps AI Monitor %c\\n" +
+        "%c—————————————————————————————————————————————————————————————————————\\n" +
+        "%cDesigned & Developed by Archit Konde\\n" +
+        "Portfolio: https://archit-konde.github.io/\\n" +
+        "GitHub:    https://github.com/Archit-Konde/supportops-ai-monitor\\n\\n" +
+        "%c[ PROJECT PHILOSOPHY ]%c\\n" +
+        "At the intersection of support operations and predictive intelligence lies \\n" +
+        "the future of customer success. This monitor is engineered to transform \\n" +
+        "raw ticket data into coherent operational narratives, ensuring that \\n" +
+        "efficiency never comes at the cost of the human experience.\\n\\n" +
+        "%c[ DEV TIP ]%c\\n" +
+        "Seniority in engineering isn't about complexity; it's about clarity. \\n" +
+        "Always optimize for the next developer who will read your code.\\n" +
+        "—————————————————————————————————————————————————————————————————————%c",
+        "background:#C9A84C; padding:5px 0;",
+        "background:#C9A84C; color:#1e1e1e; font-weight:bold; font-size:16px; padding:5px 10px; font-family:monospace;",
+        "background:#C9A84C; padding:5px 0;",
+        "color:#666; font-size:12px; font-family:monospace;",
+        "color:#C9A84C; font-size:14px; font-weight:bold; font-family:monospace;",
+        "color:#C9A84C; font-weight:bold; font-size:12px; font-family:monospace;",
+        "color:#858585; font-size:12px; font-style:italic; font-family:monospace;",
+        "color:#C9A84C; font-weight:bold; font-size:12px; font-family:monospace;",
+        "color:#858585; font-size:12px; font-family:monospace;",
+        "color:#666; font-size:12px; font-family:monospace;"
+      );
+
+    }, 1000);
+
+
+    // ——— Easter Egg: Type 'archit' for a surprise ———
+    // Strategy: Don't fight Streamlit's 'C' shortcut. Instead,
+    // auto-dismiss the "Clear caches" dialog if it appears mid-sequence,
+    // and show a clean popup when the full word is typed.
+    try {
+      var pdoc = window.parent.document;
+      if (!pdoc._archit_egg_v2) {
+        pdoc._archit_egg_v2 = true;
+        var buf = '';
+        var tmr = null;
+        var midSequence = false;
+
+        // MutationObserver: auto-dismiss cache dialog during 'archit' typing
+        var obs = new MutationObserver(function() {
+          if (!midSequence) return;
+          var btns = pdoc.querySelectorAll('[data-testid="stBaseButton-secondary"]');
+          btns.forEach(function(b) {
+            if (b.textContent.trim() === 'Cancel') b.click();
+          });
+        });
+        obs.observe(pdoc.body, { childList: true, subtree: true });
+
+        pdoc.addEventListener('keydown', function(e) {
+          var k = (e.key || '').toLowerCase();
+          if (!k || k.length > 1) return;
+
+          buf = (buf + k).slice(-6);
+          midSequence = (buf.length > 0 && 'archit'.startsWith(buf));
+          clearTimeout(tmr);
+          tmr = setTimeout(function() { buf = ''; midSequence = false; }, 2000);
+
+          if (buf === 'archit') {
+            buf = '';
+            midSequence = false;
+            if (pdoc.getElementById('archit_popup')) return;
+
+            var overlay = pdoc.createElement('div');
+            overlay.id = 'archit_popup';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:2147483647;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);cursor:pointer;opacity:0;transition:opacity 0.3s ease;';
+            overlay.innerHTML =
+              '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:48px 56px;max-width:440px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.6);font-family:sans-serif;" onclick="event.stopPropagation();">'
+              + '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#C9A84C,#8B7332);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:bold;color:#1e1e1e;">AK</div>'
+              + '<h2 style="margin:0 0 6px;color:#e0e0e0;font-size:1.5rem;font-weight:700;">Archit Konde</h2>'
+              + '<p style="margin:0 0 20px;color:#C9A84C;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Developer &bull; Engineer &bull; Builder</p>'
+              + '<p style="margin:0 0 28px;color:#999;font-size:0.9rem;line-height:1.7;">Designed and built this SupportOps AI Monitor to bridge the gap between raw support data and actionable intelligence. Passionate about clean code, thoughtful design, and tools that make teams more effective.</p>'
+              + '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">'
+              + '<a href="https://archit-konde.github.io/" target="_blank" style="display:inline-block;padding:10px 22px;background:#C9A84C;color:#1e1e1e;text-decoration:none;border-radius:6px;font-size:0.85rem;font-weight:600;">Portfolio</a>'
+              + '<a href="https://github.com/Archit-Konde/supportops-ai-monitor" target="_blank" style="display:inline-block;padding:10px 22px;background:#333;color:#e0e0e0;text-decoration:none;border-radius:6px;font-size:0.85rem;font-weight:600;border:1px solid #555;">GitHub</a>'
+              + '</div>'
+              + '<p style="margin:28px 0 0;color:#555;font-size:0.7rem;">Press Escape or click outside to close</p>'
+              + '</div>';
+
+            pdoc.body.appendChild(overlay);
+            requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+
+            var closeFn = function() {
+              overlay.style.opacity = '0';
+              setTimeout(function() { overlay.remove(); }, 300);
+            };
+            overlay.addEventListener('click', closeFn);
+            pdoc.addEventListener('keydown', function esc(ev) {
+              if (ev.key === 'Escape') { closeFn(); pdoc.removeEventListener('keydown', esc, true); }
+            }, true);
+            setTimeout(closeFn, 12000);
+          }
+        }, true);
+      }
+    } catch(e) {}
+
+
+
+
     var doc = window.parent.document;
     var btn = doc.getElementById('backToTop');
     if(!btn) return;
     function getC(){
       return doc.querySelector('[data-testid="stMainBlockContainer"]')
           || doc.querySelector('[data-testid="stAppViewContainer"]')
+
           || doc.querySelector('.main') || null;
     }
     function onScroll(){
@@ -256,289 +430,215 @@ _REPORT_CHART_LAYOUT = dict(
     height=280,
 )
 
-def _build_html_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats: dict) -> str:
-    """Return a dark-themed HTML report with embedded Plotly charts.
-    Open in any browser → Ctrl+P → Save as PDF to get a styled PDF.
-    Uses Plotly CDN — requires internet to render charts.
-    """
-    import plotly.express as _px
+_PDF_CHART_LAYOUT = dict(
+    paper_bgcolor="white",
+    plot_bgcolor="#fdfdfd",
+    font=dict(color="#212529", family="Arial, sans-serif", size=10),
+    title=dict(font=dict(color="#111111", size=12)),
+    xaxis=dict(gridcolor="#eeeeee", linecolor="#cccccc", zerolinecolor="#cccccc"),
+    yaxis=dict(gridcolor="#eeeeee", linecolor="#cccccc", zerolinecolor="#cccccc"),
+    margin=dict(t=50, b=30, l=30, r=30),
+    height=300,
+)
+
+def _build_pdf_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats: dict):
+    """Generate a beautiful, spacious light-themed PDF report."""
+    import io
+    import base64
+    from xhtml2pdf import pisa
     import plotly.io as _pio
+    import plotly.express as _px
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     tix_df  = pd.DataFrame(all_tix)    if all_tix    else pd.DataFrame()
     api_df  = pd.DataFrame(api_logs_raw) if api_logs_raw else pd.DataFrame()
 
-    # ── helper: apply dark layout + export to HTML div ──────────────────────
-    _first_chart = [True]   # use CDN script only on first chart
+    def _fig_to_base64(fig, layout=None):
+        if layout:
+            fig.update_layout(**layout)
+        else:
+            fig.update_layout(**_PDF_CHART_LAYOUT)
+        img_bytes = fig.to_image(format="png", width=700, height=350, scale=2)
+        return f"data:image/png;base64,{base64.b64encode(img_bytes).decode('utf-8')}"
 
-    def _chart(fig, height=280):
-        fig.update_layout(**{**_REPORT_CHART_LAYOUT, "height": height})
-        incl = "cdn" if _first_chart[0] else False
-        _first_chart[0] = False
-        return _pio.to_html(fig, full_html=False, include_plotlyjs=incl,
-                            config={"displayModeBar": False})
+    # -- Charts --
+    img_cat = img_pri = img_sent = img_vol = img_lat = img_err = img_http = ""
 
-    # ── Chart 1: Category donut ──────────────────────────────────────────────
-    ch_cat = ""
-    if not tix_df.empty and "category" in tix_df.columns:
-        cat_c = tix_df["category"].value_counts().reset_index()
-        cat_c.columns = ["category", "count"]
-        ch_cat = _chart(_px.pie(cat_c, names="category", values="count",
-                                title="Tickets by Category",
-                                color_discrete_sequence=list(PRIORITY_COLORS.values()),
-                                hole=0.4))
+    if not tix_df.empty:
+        try:
+            if "category" in tix_df.columns:
+                cat_c = tix_df["category"].value_counts().reset_index()
+                cat_c.columns = ["category", "count"]
+                img_cat = _fig_to_base64(_px.pie(cat_c, names="category", values="count", title="Tickets by Category", color_discrete_sequence=list(PRIORITY_COLORS.values()), hole=0.4))
+            
+            if "priority" in tix_df.columns:
+                pri_c = (tix_df["priority"].value_counts().reindex(["critical","high","medium","low"]).dropna().reset_index())
+                pri_c.columns = ["priority", "count"]
+                img_pri = _fig_to_base64(_px.bar(pri_c, x="priority", y="count", title="Tickets by Priority", color="priority", color_discrete_map=PRIORITY_COLORS))
 
-    # ── Chart 2: Priority bar ────────────────────────────────────────────────
-    ch_pri = ""
-    if not tix_df.empty and "priority" in tix_df.columns:
-        pri_c = (tix_df["priority"].value_counts()
-                 .reindex(["critical","high","medium","low"]).dropna().reset_index())
-        pri_c.columns = ["priority", "count"]
-        ch_pri = _chart(_px.bar(pri_c, x="priority", y="count",
-                                title="Tickets by Priority", color="priority",
-                                color_discrete_map=PRIORITY_COLORS))
+            if "sentiment" in tix_df.columns:
+                s_c = tix_df[tix_df["sentiment"].notna()]["sentiment"].value_counts().reset_index()
+                s_c.columns = ["sentiment", "count"]
+                if not s_c.empty:
+                    img_sent = _fig_to_base64(_px.bar(s_c, x="sentiment", y="count", title="Customer Sentiment", color="sentiment", color_discrete_map=SENTIMENT_COLORS))
 
-    # ── Chart 3: Sentiment bar ───────────────────────────────────────────────
-    ch_sent = ""
-    if not tix_df.empty and "sentiment" in tix_df.columns:
-        sent_df = tix_df[tix_df["sentiment"].notna()]
-        if not sent_df.empty:
-            s_c = sent_df["sentiment"].value_counts().reset_index()
-            s_c.columns = ["sentiment", "count"]
-            ch_sent = _chart(_px.bar(s_c, x="sentiment", y="count",
-                                     title="Customer Sentiment", color="sentiment",
-                                     color_discrete_map=SENTIMENT_COLORS))
+            if "created_at" in tix_df.columns:
+                tix_df["_date"] = pd.to_datetime(tix_df["created_at"]).dt.date
+                vol_df = tix_df.groupby("_date").size().reset_index(name="count")
+                img_vol = _fig_to_base64(_px.line(vol_df, x="_date", y="count", title="Ticket Volume Over Time", markers=True, color_discrete_sequence=[COLORS["indigo"]]))
+        except Exception as e:
+            st.error(f"Error generating support charts: {e}")
 
-    # ── Chart 4: Volume over time ────────────────────────────────────────────
-    ch_vol = ""
-    if not tix_df.empty and "created_at" in tix_df.columns:
-        tix_df["_date"] = pd.to_datetime(tix_df["created_at"]).dt.date
-        vol_df = tix_df.groupby("_date").size().reset_index(name="count")
-        ch_vol = _chart(_px.line(vol_df, x="_date", y="count",
-                                 title="Ticket Volume Over Time", markers=True,
-                                 color_discrete_sequence=[COLORS["indigo"]]), height=220)
+    if not api_df.empty:
+        try:
+            suc = api_df[api_df["success"] == 1].copy()
+            if not suc.empty:
+                suc["timestamp"] = pd.to_datetime(suc["timestamp"])
+                fig_lat = _px.scatter(suc.sort_values("timestamp"), x="timestamp", y="latency_ms", title="API Latency Over Time", color_discrete_sequence=[COLORS["indigo"]], opacity=0.6)
+                img_lat = _fig_to_base64(fig_lat)
 
-    # ── Chart 5: API latency scatter ─────────────────────────────────────────
-    ch_lat = ""
-    if not api_df.empty and "success" in api_df.columns:
-        suc = api_df[api_df["success"] == 1].copy()
-        if not suc.empty:
-            suc["timestamp"] = pd.to_datetime(suc["timestamp"])
-            suc = suc.sort_values("timestamp")
-            fig_lat = _px.scatter(suc, x="timestamp", y="latency_ms",
-                                  title="API Latency Over Time",
-                                  color_discrete_sequence=[COLORS["indigo"]], opacity=0.6)
-            fig_lat.add_hline(y=suc["latency_ms"].mean(), line_dash="dash",
-                              line_color=COLORS["warning"],
-                              annotation_text=f"Mean: {suc['latency_ms'].mean():.0f}ms",
-                              annotation_font_color="#d4d4d4")
-            ch_lat = _chart(fig_lat)
+            err_df = api_df[api_df["success"] == 0]
+            if not err_df.empty:
+                e_c = err_df["error_type"].value_counts().reset_index()
+                e_c.columns = ["error_type", "count"]
+                img_err = _fig_to_base64(_px.bar(e_c, x="error_type", y="count", title="API Errors by Type", color="error_type", color_discrete_map=ERROR_COLORS))
 
-    # ── Chart 6: Error bar ───────────────────────────────────────────────────
-    ch_err = ""
-    if not api_df.empty and "success" in api_df.columns:
-        err_df = api_df[api_df["success"] == 0]
-        if not err_df.empty:
-            e_c = err_df["error_type"].value_counts().reset_index()
-            e_c.columns = ["error_type", "count"]
-            ch_err = _chart(_px.bar(e_c, x="error_type", y="count",
-                                    title="API Errors by Type", color="error_type",
-                                    color_discrete_map=ERROR_COLORS))
+            hc = api_df["status_code"].value_counts().reset_index()
+            hc.columns = ["status_code", "count"]
+            hc["status_code"] = hc["status_code"].astype(str)
+            img_http = _fig_to_base64(_px.bar(hc, x="status_code", y="count", title="HTTP Status Code Distribution", color="status_code", color_discrete_map=HTTP_COLORS))
+        except Exception as e:
+            st.error(f"Error generating API charts: {e}")
 
-    # ── Chart 7: HTTP status bar ─────────────────────────────────────────────
-    ch_http = ""
-    if not api_df.empty and "status_code" in api_df.columns:
-        hc = api_df["status_code"].value_counts().reset_index()
-        hc.columns = ["status_code", "count"]
-        hc["status_code"] = hc["status_code"].astype(str)
-        ch_http = _chart(_px.bar(hc, x="status_code", y="count",
-                                 title="HTTP Status Code Distribution",
-                                 color="status_code",
-                                 color_discrete_map=HTTP_COLORS), height=220)
+    # -- KPI Table (xhtml2pdf fallback for flex) --
+    kpi_items = [
+        (str(t_stats.get("total", 0)), "Total Tickets"),
+        (str(t_stats.get("open", 0)), "Open"),
+        (str(t_stats.get("resolved", 0)), "Resolved"),
+        (f"{a_stats.get('success_rate', 0)}%", "API Success Rate"),
+        (f"{a_stats.get('avg_latency_ms', 0)} ms", "Avg Latency"),
+    ]
+    
+    kpis_html = "<table style='width: 100%;'><tr>"
+    for v, lbl in kpi_items:
+        kpis_html += f"""
+        <td style='width: 20%; padding: 5px;'>
+            <div style='background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; text-align: center;'>
+                <div style='font-size: 18px; font-weight: bold; color: #C9A84C;'>{v}</div>
+                <div style='font-size: 10px; color: #666;'>{lbl}</div>
+            </div>
+        </td>"""
+    kpis_html += "</tr></table>"
 
-    # ── KPI cards ────────────────────────────────────────────────────────────
-    kpis_html = "".join(
-        f'<div class="kpi"><div class="kv">{v}</div><div class="kl">{lbl}</div></div>'
-        for v, lbl in [
-            (t_stats.get("total", 0),                  "Total Tickets"),
-            (t_stats.get("open",  0),                  "Open"),
-            (t_stats.get("resolved", 0),               "Resolved"),
-            (f"{a_stats.get('success_rate', 0)}%",     "API Success Rate"),
-            (f"{a_stats.get('avg_latency_ms', 0)} ms", "Avg Latency"),
-        ]
-    )
+    # -- Ticket Table --
+    ticket_rows = ""
+    for i, t in enumerate(all_tix[:60]):
+        bg = "#ffffff" if i % 2 == 0 else "#f9f9f9"
+        priority = str(t.get('priority','')).upper()
+        p_color = PRIORITY_COLORS.get(t.get('priority',''), '#333')
+        ticket_rows += f"""
+        <tr style='background-color: {bg}'>
+            <td>{str(t.get('ticket_id',''))}</td>
+            <td>{str(t.get('customer',''))}</td>
+            <td>{str(t.get('subject',''))[:60]}</td>
+            <td style='color:{p_color}'><b>{priority}</b></td>
+            <td>{str(t.get('status',''))}</td>
+            <td>{str(t.get('category','') or '—')}</td>
+            <td>{str(t.get('sentiment','') or '—')}</td>
+        </tr>"""
 
-    # ── Breakdown tables ─────────────────────────────────────────────────────
-    def _tbl_rows(d):
-        return "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in d.items())
+    html = f"""
+    <html>
+    <head>
+        <style>
+            @page {{ size: A4 landscape; margin: 1cm; }}
+            body {{ font-family: Helvetica, Arial, sans-serif; color: #333; line-height: 1.4; background-color: white; }}
+            .header {{ border-bottom: 2px solid #C9A84C; padding-bottom: 10px; margin-bottom: 20px; }}
+            .title {{ font-size: 22px; font-weight: bold; color: #111; }}
+            .title span {{ color: #C9A84C; }}
+            .meta {{ font-size: 9px; color: #666; margin-top: 5px; }}
+            .section-title {{ font-size: 13px; font-weight: bold; color: #C9A84C; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; border-left: 4px solid #C9A84C; padding-left: 10px; }}
+            .chart-table {{ width: 100%; }}
+            .chart-cell {{ width: 50%; padding: 10px; text-align: center; }}
+            .chart-img {{ width: 100%; border: 1px solid #f0f0f0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }}
+            th {{ background-color: #f1f3f5; color: #111; text-align: left; padding: 8px; border: 1px solid #dee2e6; }}
+            td {{ padding: 6px 8px; border: 1px solid #dee2e6; vertical-align: top; }}
+            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="title"><span>&gt;</span> SupportOps AI Monitor Report</div>
+            <div class="meta">Generated: {now} | Total Tickets: {t_stats.get('total', 0)} | System Status: Optimal</div>
+        </div>
 
-    err_rows = _tbl_rows(a_stats.get("errors_by_type", {})) or "<tr><td colspan='2'>None</td></tr>"
 
-    # ── Ticket queue rows ────────────────────────────────────────────────────
-    ticket_rows = "".join(
-        f"<tr>"
-        f"<td>{t.get('ticket_id','')}</td>"
-        f"<td>{t.get('customer','')}</td>"
-        f"<td>{str(t.get('subject',''))[:65]}</td>"
-        f"<td style='color:{PRIORITY_COLORS.get(t.get('priority',''),'#d4d4d4')}'>"
-        f"  {t.get('priority','')}</td>"
-        f"<td>{t.get('status','')}</td>"
-        f"<td>{t.get('category') or '—'}</td>"
-        f"<td>{t.get('sentiment') or '—'}</td>"
-        f"<td>{str(t.get('ai_summary') or '—')[:75]}</td>"
-        f"</tr>"
-        for t in all_tix[:50]
-    )
+        <div class="section-title">Operational Overview</div>
+        {kpis_html}
 
-    # ── Build 3-col chart grid cells safely (may be empty string) ────────────
-    def _cell(ch, title=""):
-        if not ch:
-            return ""
-        return f'<div class="chart-cell">{ch}</div>'
+        <div class="section-title">Support Analytics</div>
+        <table class="chart-table">
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_cat}">' if img_cat else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_pri}">' if img_pri else ''}</td>
+            </tr>
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_sent}">' if img_sent else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_vol}">' if img_vol else ''}</td>
+            </tr>
+        </table>
 
-    row1 = "".join([_cell(ch_cat), _cell(ch_pri), _cell(ch_sent)])
-    row3 = "".join([_cell(ch_lat), _cell(ch_err)])
+        <pdf:nextpage />
 
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SupportOps AI Monitor — {now}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-/* ── Design tokens ─────────────────────────── */
-:root{{
-  --bg:#1e1e1e; --surface:#252526; --border:#3e3e42;
-  --text:#d4d4d4; --muted:#858585; --accent:#C9A84C;
-  --font:'JetBrains Mono','Courier New',monospace;
-}}
-*{{box-sizing:border-box;margin:0;padding:0;}}
-body{{
-  font-family:var(--font); background:var(--bg); color:var(--text);
-  font-size:12px; line-height:1.5; padding:1.5rem;
-}}
-/* ── Header ────────────────────────────────── */
-.rpt-header{{
-  border-bottom:2px solid var(--accent); padding-bottom:.6rem; margin-bottom:1.2rem;
-  display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap;
-}}
-.rpt-title{{
-  font-size:1.4rem; font-weight:700; color:var(--text); letter-spacing:-.02em;
-}}
-.rpt-title span{{color:var(--accent);}}
-.rpt-meta{{color:var(--muted); font-size:.72rem;}}
-/* ── Section labels ─────────────────────────── */
-.s-label{{
-  font-size:.72rem; color:var(--accent); font-weight:600;
-  margin:1.4rem 0 .5rem; text-transform:uppercase; letter-spacing:.08em;
-}}
-.s-label::before{{content:"$ "; color:var(--muted);}}
-/* ── KPI row ────────────────────────────────── */
-.kpis{{display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:.5rem;}}
-.kpi{{
-  background:var(--surface); border:1px solid var(--border);
-  padding:.7rem 1rem; min-width:130px; border-radius:4px; flex:1;
-}}
-.kv{{font-size:1.6rem; font-weight:700; color:var(--accent);}}
-.kl{{font-size:.68rem; color:var(--muted); margin-top:.1rem;}}
-/* ── Chart grids ────────────────────────────── */
-.charts-3col{{display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:.6rem;}}
-.charts-2col{{display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:.6rem;}}
-.chart-full{{margin-bottom:.6rem;}}
-.chart-cell{{background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden;}}
-/* ── Tables ─────────────────────────────────── */
-.tables-grid{{display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:.6rem;}}
-table{{border-collapse:collapse; width:100%;}}
-th{{
-  background:#2d2d2d; color:var(--accent); padding:.3rem .5rem;
-  text-align:left; border:1px solid var(--border); font-size:.68rem;
-  font-weight:600; text-transform:uppercase; letter-spacing:.05em;
-}}
-td{{padding:.28rem .5rem; border:1px solid var(--border); font-size:.68rem; vertical-align:top; color:var(--text);}}
-tr:nth-child(even){{background:var(--surface);}}
-.tbl-wrap{{background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden;}}
-/* ── Divider ─────────────────────────────────── */
-hr{{border:none; border-top:1px solid var(--border); margin:1rem 0;}}
-/* ── Print ───────────────────────────────────── */
-@media print{{
-  @page{{margin:1.2cm; size:A4 landscape;}}
-  html,body{{
-    -webkit-print-color-adjust:exact!important;
-    print-color-adjust:exact!important;
-    background:var(--bg)!important; color:var(--text)!important;
-    padding:.5rem;
-  }}
-  /* Preserve backgrounds on all elements */
-  *{{-webkit-print-color-adjust:exact!important; print-color-adjust:exact!important;}}
-  /* Keep chart/KPI groups together */
-  .charts-3col,.charts-2col,.chart-full,.kpis{{page-break-inside:avoid; break-inside:avoid;}}
-  .chart-cell,.tbl-wrap,.kpi{{page-break-inside:avoid; break-inside:avoid;}}
-  /* Ticket section on new page */
-  .ticket-section{{page-break-before:always; break-before:page;}}
-  /* Repeat table headers on each printed page */
-  thead{{display:table-header-group;}}
-  tbody{{display:table-row-group;}}
-  tr{{page-break-inside:avoid; break-inside:avoid;}}
-}}
-</style>
-</head>
-<body>
+        <div class="section-title">API Health & Performance</div>
+        <table class="chart-table">
+            <tr>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_lat}">' if img_lat else ''}</td>
+                <td class="chart-cell">{f'<img class="chart-img" src="{img_err}">' if img_err else ''}</td>
+            </tr>
+        </table>
+        <div style="text-align: center; padding: 10px;">
+            {f'<img style="width: 80%; border: 1px solid #f0f0f0;" src="{img_http}">' if img_http else ''}
+        </div>
 
-<div class="rpt-header">
-  <div class="rpt-title"><span>&gt;</span> SupportOps AI Monitor</div>
-  <div class="rpt-meta">Generated: {now} &nbsp;·&nbsp;
-    {t_stats.get("total",0)} tickets &nbsp;·&nbsp;
-    {len(all_tix)} total in DB</div>
-</div>
+        <pdf:nextpage />
 
-<div class="s-label">cat overview</div>
-<div class="kpis">{kpis_html}</div>
+        <div class="section-title">Ticket Registry - Recent Activity</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Customer</th>
+                    <th>Subject</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Category</th>
+                    <th>Sentiment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {ticket_rows}
+            </tbody>
+        </table>
 
-<div class="s-label">./analytics --tickets</div>
-{'<div class="charts-3col">' + row1 + '</div>' if row1 else ''}
-{'<div class="chart-full chart-cell">' + ch_vol + '</div>' if ch_vol else ''}
+        <div class="footer">
+            &copy; 2026 All rights reserved. Designed & Developed by <a href="https://archit-konde.github.io/">Archit Konde</a>
+        </div>
+    </body>
+    </html>
+    """
 
-<div class="s-label">./health --api</div>
-{'<div class="charts-2col">' + row3 + '</div>' if row3 else ''}
-{'<div class="chart-full chart-cell">' + ch_http + '</div>' if ch_http else ''}
 
-<hr>
-<div class="s-label">cat stats --breakdown</div>
-<div class="tables-grid">
-  <div class="tbl-wrap"><table>
-    <tr><th>Category</th><th>Count</th></tr>
-    {_tbl_rows(t_stats.get('by_category', {}))}
-  </table></div>
-  <div class="tbl-wrap"><table>
-    <tr><th>Priority</th><th>Count</th></tr>
-    {_tbl_rows(t_stats.get('by_priority', {}))}
-  </table></div>
-  <div class="tbl-wrap"><table>
-    <tr><th>Sentiment</th><th>Count</th></tr>
-    {_tbl_rows(t_stats.get('by_sentiment', {}))}
-  </table></div>
-  <div class="tbl-wrap"><table>
-    <tr><th>API Metric</th><th>Value</th></tr>
-    <tr><td>Total Calls</td><td>{a_stats.get('total_calls', 0)}</td></tr>
-    <tr><td>Success Rate</td><td>{a_stats.get('success_rate', 0)}%</td></tr>
-    <tr><td>Avg Latency</td><td>{a_stats.get('avg_latency_ms', 0)} ms</td></tr>
-    {err_rows}
-  </table></div>
-</div>
+    
+    pdf_buffer = io.BytesIO()
+    pisa_status = pisa.CreatePDF(html, dest=pdf_buffer)
+    
+    if pisa_status.err:
+        return None
+        
+    return pdf_buffer.getvalue()
 
-<div class="ticket-section">
-<div class="s-label">ls tickets/ --top 50</div>
-<div class="tbl-wrap"><table>
-  <thead><tr><th>ID</th><th>Customer</th><th>Subject</th><th>Priority</th>
-      <th>Status</th><th>Category</th><th>Sentiment</th><th>AI Summary</th></tr></thead>
-  <tbody>{ticket_rows}</tbody>
-</table></div>
-</div>
-
-</body>
-</html>"""
 
 
 # ── Init DB ───────────────────────────────────────────────────────────────────
@@ -567,11 +667,20 @@ def load_api_health_stats(version):
 if "data_version" not in st.session_state:
     st.session_state.data_version = 0
 
+# ── Load data (Move up to use in sidebar) ─────────────────────────────────────
+all_tickets = load_all_tickets(st.session_state.data_version)
+api_logs = load_api_logs(st.session_state.data_version, limit=500)
+
+_report_stats  = load_ticket_stats(st.session_state.data_version) if all_tickets else {}
+_report_api    = load_api_health_stats(st.session_state.data_version) if api_logs else {}
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+
 with st.sidebar:
     st.markdown("**> SupportOps AI Monitor**")
     st.caption("// AI Platform · Support Operations")
     st.divider()
+
 
     st.subheader("Data Controls")
 
@@ -594,6 +703,7 @@ with st.sidebar:
 
             with st.spinner("Running AI triage..."):
                 stats = ai_triage.triage_batch(tickets, progress_callback=update_progress)
+
 
             progress_bar.empty()
             status_text.empty()
@@ -663,6 +773,7 @@ with st.sidebar:
                             uploaded_tickets, progress_callback=upload_update
                         )
 
+
                     upload_progress.empty()
                     upload_status.empty()
                     st.success(
@@ -692,7 +803,25 @@ with st.sidebar:
 
     # ── Export + Reset ─────────────────────────────────────────────────────────
     st.subheader("Export")
-    st.caption("// HTML report download available below the dashboard")
+    
+    if all_tickets:
+        with st.spinner("Preparing..."):
+            _sidebar_pdf = _build_pdf_report(all_tickets, api_logs, _report_stats, _report_api)
+        
+        if _sidebar_pdf:
+            st.download_button(
+                label="⬇ Download PDF Report",
+                data=_sidebar_pdf,
+                file_name=f"supportops-report-{datetime.now().strftime('%Y%m%d-%H%M')}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="sidebar_download_pdf"
+            )
+
+    else:
+        st.caption("Generate tickets to export")
+
+
 
     st.divider()
 
@@ -715,10 +844,8 @@ with st.sidebar:
                 st.rerun()
 
 # ── Load data ─────────────────────────────────────────────────────────────────
-all_tickets = load_all_tickets(st.session_state.data_version)
-api_logs = load_api_logs(st.session_state.data_version, limit=500)
-
 # Apply filters
+
 filtered_tickets = [
     t for t in all_tickets
     if t["status"] in status_filter and t["priority"] in priority_filter
@@ -734,6 +861,7 @@ st.markdown(
     '<span style="color:#C9A84C;">&gt;</span> SupportOps AI Monitor</h1>',
     unsafe_allow_html=True,
 )
+
 st.caption(
     f"Last updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC  ·  "
     f"Showing {len(filtered_tickets)} of {len(all_tickets)} tickets"
@@ -941,6 +1069,9 @@ if not ticket_df.empty:
     display_cols = ["ticket_id", "created_at", "customer", "subject", "priority", "status", "category", "sentiment", "ai_summary"]
     display_cols = [c for c in display_cols if c in ticket_df.columns]
     display_df = ticket_df[display_cols].copy()
+    if "ai_summary" in display_df.columns:
+        display_df = display_df.rename(columns={"ai_summary": "Ops Insight"})
+
 
     def priority_badge(val):
         base = "border-radius: 3px; padding: 1px 6px; font-size: 0.75rem; font-weight: 600; font-family: 'JetBrains Mono', monospace;"
@@ -1002,15 +1133,21 @@ _term("export --format pdf")
 if all_tickets:
     _report_stats  = load_ticket_stats(st.session_state.data_version)
     _report_api    = load_api_health_stats(st.session_state.data_version) if api_logs else {}
-    _report_html   = _build_html_report(all_tickets, api_logs, _report_stats, _report_api)
-    st.download_button(
-        label="⬇ Download PDF Report",
-        data=_report_html,
-        file_name=f"supportops-report-{datetime.now().strftime('%Y%m%d-%H%M')}.html",
-        mime="text/html",
-        use_container_width=True,
-        help="Open in browser → Ctrl+P → Save as PDF. Dark theme preserved.",
-    )
-    st.caption("// open in browser → Ctrl+P → Save as PDF · dark theme preserved")
+    
+    with st.spinner("Finalizing report..."):
+        _report_pdf = _build_pdf_report(all_tickets, api_logs, _report_stats, _report_api)
+
+    if _report_pdf:
+        st.download_button(
+            label="⬇ Download PDF Report",
+            data=_report_pdf,
+            file_name=f"supportops-report-{datetime.now().strftime('%Y%m%d-%H%M')}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
+    else:
+        st.error("Failed to generate report. Please verify system dependencies.")
 else:
-    st.caption("// generate tickets first to enable report download")
+    st.caption("Population of system data required for report generation.")
+
+

@@ -1,36 +1,59 @@
-# Normalise line endings to LF everywhere
-* text=auto
+# ───────────────────────────────────────────────
+# SupportOps AI Monitor — .gitattributes
+# ───────────────────────────────────────────────
 
-# Source and config — always LF
+# Normalise line endings to LF on checkout (cross-platform consistency)
+* text=auto eol=lf
+
+# ─── Source Code — always LF ──────────────────
 *.py        text eol=lf
+*.js        text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.sql       text eol=lf
+*.sh        text eol=lf
+
+# ─── Config & Data — always LF ────────────────
 *.md        text eol=lf
 *.yml       text eol=lf
 *.yaml      text eol=lf
 *.toml      text eol=lf
 *.json      text eol=lf
 *.txt       text eol=lf
-*.html      text eol=lf
-*.css       text eol=lf
-*.js        text eol=lf
-*.sh        text eol=lf
-*.sql       text eol=lf
+*.csv       text eol=lf
 *.cff       text eol=lf
+*.ini       text eol=lf
+*.cfg       text eol=lf
 Dockerfile  text eol=lf
 .gitignore  text eol=lf
-.env*       text eol=lf
+.gitattributes text eol=lf
 
-# Binary — never diff or mangle
-*.png  binary
-*.jpg  binary
-*.jpeg binary
-*.ico  binary
-*.gif  binary
-*.pdf  binary
-*.svg  binary
+# ─── Binary — never diff or normalise ─────────
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.ico       binary
+*.gif       binary
+*.webp      binary
+*.svg       binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.sqlite    binary
+*.db        binary
 
-# GitHub Linguist — documentation files don't count as code
-CLAUDE.md   linguist-documentation=true
-README.md   linguist-documentation=true
+# ─── GitHub Linguist ──────────────────────────
+# Documentation — excluded from language stats
+README.md               linguist-documentation=true
+CLAUDE.md               linguist-documentation=true
+AGENTS.md               linguist-documentation=true
+docs/**                 linguist-documentation=true
 
-# Linguist — make Dockerfile visible as a detected language
-Dockerfile  linguist-detectable=true
+# Vendored — excluded from language stats
+venv/**                 linguist-vendored=true
+
+# Detectable — ensure key files appear in repo stats
+Dockerfile              linguist-detectable=true
+*.py                    linguist-detectable=true
