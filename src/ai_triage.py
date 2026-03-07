@@ -22,6 +22,23 @@ except Exception:
 
 import database as db
 
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def _make_log(ticket_id: str, latency_ms: float, status_code: int = 200,
+              success: int = 1, error_type: str | None = None) -> dict:
+    """Build an API health log entry. Centralises the 7-key dict shape."""
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "endpoint": "/v1/chat/completions",
+        "status_code": status_code,
+        "latency_ms": round(latency_ms, 2),
+        "success": success,
+        "error_type": error_type,
+        "ticket_id": ticket_id,
+    }
+
+
 # ── Prompt ────────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """You are an expert support ticket triage specialist for an enterprise AI platform.
@@ -46,43 +63,14 @@ def _simulate_triage(ticket: dict) -> tuple[dict, dict]:
     time.sleep(latency / 1000)  # simulate network wait
 
     # Simulate occasional failures (10% error rate for realism)
+    # Thresholds: 0–4% rate_limit, 4–7% server_error, 7–10% timeout
     rand = random.random()
     if rand < 0.04:
-        # Rate limit error
-        log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/v1/chat/completions",
-            "status_code": 429,
-            "latency_ms": round(latency, 2),
-            "success": 0,
-            "error_type": "rate_limit",
-            "ticket_id": ticket["ticket_id"],
-        }
-        return None, log
+        return None, _make_log(ticket["ticket_id"], latency, 429, 0, "rate_limit")
     elif rand < 0.07:
-        # Server error
-        log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/v1/chat/completions",
-            "status_code": 500,
-            "latency_ms": round(latency, 2),
-            "success": 0,
-            "error_type": "server_error",
-            "ticket_id": ticket["ticket_id"],
-        }
-        return None, log
+        return None, _make_log(ticket["ticket_id"], latency, 500, 0, "server_error")
     elif rand < 0.10:
-        # Timeout
-        log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/v1/chat/completions",
-            "status_code": 408,
-            "latency_ms": round(latency + 5000, 2),
-            "success": 0,
-            "error_type": "timeout",
-            "ticket_id": ticket["ticket_id"],
-        }
-        return None, log
+        return None, _make_log(ticket["ticket_id"], latency + 5000, 408, 0, "timeout")
 
     # Use category from generator as ground truth for simulation
     category = ticket.get("category", "other")
@@ -105,18 +93,7 @@ def _simulate_triage(ticket: dict) -> tuple[dict, dict]:
         "sentiment": sentiment,
         "summary": summary,
     }
-
-    log = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "endpoint": "/v1/chat/completions",
-        "status_code": 200,
-        "latency_ms": round(latency, 2),
-        "success": 1,
-        "error_type": None,
-        "ticket_id": ticket["ticket_id"],
-    }
-
-    return result, log
+    return result, _make_log(ticket["ticket_id"], latency)
 
 
 def triage_ticket(ticket: dict) -> dict | None:
@@ -159,16 +136,9 @@ def triage_ticket(ticket: dict) -> dict | None:
         try:
             result = json.loads(raw)
         except json.JSONDecodeError:
-            log = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "endpoint": "/v1/chat/completions",
-                "status_code": 200,
-                "latency_ms": round(latency_ms, 2),
-                "success": 0,
-                "error_type": "parse_error",
-                "ticket_id": ticket["ticket_id"],
-            }
-            db.insert_api_log(log)
+            db.insert_api_log(
+                _make_log(ticket["ticket_id"], latency_ms, 200, 0, "parse_error")
+            )
             return None
 
         # Validate fields
@@ -179,16 +149,7 @@ def triage_ticket(ticket: dict) -> dict | None:
         if result.get("sentiment") not in valid_sentiments:
             result["sentiment"] = "neutral"
 
-        log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/v1/chat/completions",
-            "status_code": 200,
-            "latency_ms": round(latency_ms, 2),
-            "success": 1,
-            "error_type": None,
-            "ticket_id": ticket["ticket_id"],
-        }
-        db.insert_api_log(log)
+        db.insert_api_log(_make_log(ticket["ticket_id"], latency_ms))
         db.update_ticket_ai_fields(
             ticket["ticket_id"],
             result["category"],
@@ -214,16 +175,9 @@ def triage_ticket(ticket: dict) -> dict | None:
             error_type = "unknown"
             status_code = 0
 
-        log = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/v1/chat/completions",
-            "status_code": status_code,
-            "latency_ms": round(latency_ms, 2),
-            "success": 0,
-            "error_type": error_type,
-            "ticket_id": ticket["ticket_id"],
-        }
-        db.insert_api_log(log)
+        db.insert_api_log(
+            _make_log(ticket["ticket_id"], latency_ms, status_code, 0, error_type)
+        )
         return None
 
 

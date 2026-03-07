@@ -236,8 +236,8 @@ def _term(cmd):
     """Render a terminal-style section header: $ cmd."""
     st.markdown(
         f'<p class="term-cmd" style="font-family:\'JetBrains Mono\',monospace;font-size:0.95rem;'
-        f'color:#d4d4d4;margin:1rem 0 0.5rem;">'
-        f'<span style="color:#C9A84C;font-weight:600;">$</span> {cmd}</p>',
+        f'color:{COLORS["text"]};margin:1rem 0 0.5rem;">'
+        f'<span style="color:{COLORS["accent"]};font-weight:600;">$</span> {cmd}</p>',
         unsafe_allow_html=True,
     )
 
@@ -391,7 +391,7 @@ def _build_html_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats
     )
 
     # ── Build 3-col chart grid cells safely (may be empty string) ────────────
-    def _cell(ch, title=""):
+    def _cell(ch):
         if not ch:
             return ""
         return f'<div class="chart-cell">{ch}</div>'
@@ -943,14 +943,14 @@ if not ticket_df.empty:
     display_df = ticket_df[display_cols].copy()
 
     def priority_badge(val):
-        base = "border-radius: 3px; padding: 1px 6px; font-size: 0.75rem; font-weight: 600; font-family: 'JetBrains Mono', monospace;"
-        badge = {
-            "critical": f"color: {COLORS['danger']}; border: 1px solid {COLORS['danger']}; {base}",
-            "high":     f"color: {COLORS['warning']}; border: 1px solid {COLORS['warning']}; {base}",
-            "medium":   f"color: {COLORS['yellow']}; border: 1px solid {COLORS['yellow']}; {base}",
-            "low":      f"color: {COLORS['success']}; border: 1px solid {COLORS['success']}; {base}",
-        }
-        return badge.get(val, "")
+        color = PRIORITY_COLORS.get(val)
+        if not color:
+            return ""
+        return (
+            f"color: {color}; border: 1px solid {color}; border-radius: 3px; "
+            f"padding: 1px 6px; font-size: 0.75rem; font-weight: 600; "
+            f"font-family: 'JetBrains Mono', monospace;"
+        )
 
     styled = display_df.style.map(priority_badge, subset=["priority"])
     st.dataframe(styled, use_container_width=True, height=400)
