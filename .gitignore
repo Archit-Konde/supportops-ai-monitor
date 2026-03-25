@@ -11,3 +11,5 @@ venv/
 data/
 logs/
 CLAUDE.md
+.gstack/
+.gstack-standardized/

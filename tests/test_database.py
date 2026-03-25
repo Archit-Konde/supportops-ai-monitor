@@ -18,20 +18,16 @@ class TestInitDb:
     """Tests for init_db() schema creation."""
 
     def test_tables_exist(self):
-        conn = db.get_connection()
-        try:
+        with db.get_connection() as conn:
             tables = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             ).fetchall()
             names = {r["name"] for r in tables}
             assert "tickets" in names
             assert "api_health_logs" in names
-        finally:
-            conn.close()
 
     def test_indexes_exist(self):
-        conn = db.get_connection()
-        try:
+        with db.get_connection() as conn:
             indexes = conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%'"
             ).fetchall()
@@ -42,8 +38,6 @@ class TestInitDb:
                 "idx_api_logs_success", "idx_api_logs_timestamp",
             }
             assert expected.issubset(names), f"Missing indexes: {expected - names}"
-        finally:
-            conn.close()
 
     def test_idempotent(self):
         """Calling init_db() twice should not raise."""

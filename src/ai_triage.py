@@ -14,7 +14,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from openai import OpenAI
+    from openai import (
+        OpenAI, RateLimitError, APITimeoutError, InternalServerError, APIError,
+    )
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     OPENAI_AVAILABLE = True
 except Exception:
@@ -105,16 +107,25 @@ def triage_ticket(ticket: dict) -> dict | None:
     if not OPENAI_AVAILABLE or not os.getenv("OPENAI_API_KEY"):
         result, log = _simulate_triage(ticket)
         db.insert_api_log(log)
-        if result:
-            db.update_ticket_ai_fields(
-                ticket["ticket_id"],
-                result["category"],
-                result["sentiment"],
-                result["summary"],
-            )
-        return result
+    else:
+        result = _call_openai(ticket)
 
-    # ── Real OpenAI call ──────────────────────────────────────────────────
+    if result:
+        db.update_ticket_ai_fields(
+            ticket["ticket_id"],
+            result["category"],
+            result["sentiment"],
+            result["summary"],
+        )
+    return result
+
+
+VALID_CATEGORIES = {"api", "billing", "account", "safety", "other"}
+VALID_SENTIMENTS = {"positive", "neutral", "negative"}
+
+
+def _call_openai(ticket: dict) -> dict | None:
+    """Call OpenAI API for triage. Logs the result and returns parsed dict or None."""
     user_message = f"Subject: {ticket['subject']}\n\nBody:\n{ticket['body']}"
     start = time.time()
 
@@ -142,41 +153,36 @@ def triage_ticket(ticket: dict) -> dict | None:
             return None
 
         # Validate fields
-        valid_categories = {"api", "billing", "account", "safety", "other"}
-        valid_sentiments = {"positive", "neutral", "negative"}
-        if result.get("category") not in valid_categories:
+        if result.get("category") not in VALID_CATEGORIES:
             result["category"] = "other"
-        if result.get("sentiment") not in valid_sentiments:
+        if result.get("sentiment") not in VALID_SENTIMENTS:
             result["sentiment"] = "neutral"
 
         db.insert_api_log(_make_log(ticket["ticket_id"], latency_ms))
-        db.update_ticket_ai_fields(
-            ticket["ticket_id"],
-            result["category"],
-            result["sentiment"],
-            result["summary"],
-        )
         return result
 
-    except Exception as e:
+    except RateLimitError:
         latency_ms = (time.time() - start) * 1000
-        error_str = str(e).lower()
-
-        if "rate_limit" in error_str or "429" in error_str:
-            error_type = "rate_limit"
-            status_code = 429
-        elif "timeout" in error_str or "408" in error_str:
-            error_type = "timeout"
-            status_code = 408
-        elif "500" in error_str:
-            error_type = "server_error"
-            status_code = 500
-        else:
-            error_type = "unknown"
-            status_code = 0
-
         db.insert_api_log(
-            _make_log(ticket["ticket_id"], latency_ms, status_code, 0, error_type)
+            _make_log(ticket["ticket_id"], latency_ms, 429, 0, "rate_limit")
+        )
+        return None
+    except APITimeoutError:
+        latency_ms = (time.time() - start) * 1000
+        db.insert_api_log(
+            _make_log(ticket["ticket_id"], latency_ms, 408, 0, "timeout")
+        )
+        return None
+    except InternalServerError:
+        latency_ms = (time.time() - start) * 1000
+        db.insert_api_log(
+            _make_log(ticket["ticket_id"], latency_ms, 500, 0, "server_error")
+        )
+        return None
+    except Exception:
+        latency_ms = (time.time() - start) * 1000
+        db.insert_api_log(
+            _make_log(ticket["ticket_id"], latency_ms, 0, 0, "unknown")
         )
         return None
 

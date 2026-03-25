@@ -5,6 +5,7 @@ Run with: streamlit run app.py
 """
 
 import uuid
+from html import escape as html_escape
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -377,15 +378,15 @@ def _build_html_report(all_tix: list, api_logs_raw: list, t_stats: dict, a_stats
     # ── Ticket queue rows ────────────────────────────────────────────────────
     ticket_rows = "".join(
         f"<tr>"
-        f"<td>{t.get('ticket_id','')}</td>"
-        f"<td>{t.get('customer','')}</td>"
-        f"<td>{str(t.get('subject',''))[:65]}</td>"
+        f"<td>{html_escape(str(t.get('ticket_id','')))}</td>"
+        f"<td>{html_escape(str(t.get('customer','')))}</td>"
+        f"<td>{html_escape(str(t.get('subject',''))[:65])}</td>"
         f"<td style='color:{PRIORITY_COLORS.get(t.get('priority',''),'#d4d4d4')}'>"
-        f"  {t.get('priority','')}</td>"
-        f"<td>{t.get('status','')}</td>"
-        f"<td>{t.get('category') or '—'}</td>"
-        f"<td>{t.get('sentiment') or '—'}</td>"
-        f"<td>{str(t.get('ai_summary') or '—')[:75]}</td>"
+        f"  {html_escape(str(t.get('priority','')))}</td>"
+        f"<td>{html_escape(str(t.get('status','')))}</td>"
+        f"<td>{html_escape(str(t.get('category') or '—'))}</td>"
+        f"<td>{html_escape(str(t.get('sentiment') or '—'))}</td>"
+        f"<td>{html_escape(str(t.get('ai_summary') or '—')[:75])}</td>"
         f"</tr>"
         for t in all_tix[:50]
     )
@@ -600,8 +601,8 @@ with st.sidebar:
             st.success(f"{stats['success']} triaged · {stats['failed']} failed")
             st.session_state.data_version += 1
             st.rerun()
-        except Exception as e:
-            st.error(f"Error during ticket generation/triage: {e}")
+        except Exception:
+            st.error("An error occurred during ticket generation/triage. Please try again.")
 
     st.divider()
 
@@ -627,7 +628,7 @@ with st.sidebar:
                 st.error(f"Missing required columns: {', '.join(missing)}")
             else:
                 st.write(f"Found **{len(upload_df)}** tickets in upload.")
-                st.dataframe(upload_df.head(5), use_container_width=True, height=150)
+                st.dataframe(upload_df.head(5), width="stretch", height=150)
 
                 if st.button("Import & Triage Uploaded Tickets", use_container_width=True):
                     uploaded_tickets = []
@@ -671,8 +672,8 @@ with st.sidebar:
                     )
                     st.session_state.data_version += 1
                     st.rerun()
-        except Exception as e:
-            st.error(f"Error processing file: {e}")
+        except Exception:
+            st.error("An error occurred processing the uploaded file. Please check the format and try again.")
 
     st.divider()
 
@@ -786,7 +787,7 @@ with col1:
             hole=0.4,
         )
         fig.update_layout(height=CHART_H_PRIMARY, margin=CHART_MARGIN)
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 with col2:
     if not ticket_df.empty and "priority" in ticket_df.columns:
@@ -814,7 +815,7 @@ with col2:
             xaxis_title="",
             yaxis_title="Count",
         )
-        st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 with col3:
     if not ticket_df.empty and "sentiment" in ticket_df.columns:
@@ -837,7 +838,7 @@ with col3:
                 xaxis_title="",
                 yaxis_title="Count",
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 if not ticket_df.empty and "created_at" in ticket_df.columns:
     ticket_df["created_date"] = pd.to_datetime(ticket_df["created_at"]).dt.date
@@ -856,7 +857,7 @@ if not ticket_df.empty and "created_at" in ticket_df.columns:
         xaxis_title="",
         yaxis_title="Tickets",
     )
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 st.divider()
 
@@ -886,7 +887,7 @@ if not api_df.empty:
                 annotation_text=f"Mean: {success_df['latency_ms'].mean():.0f}ms",
             )
             fig.update_layout(height=CHART_H_PRIMARY, margin=CHART_MARGIN)
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
     with col2:
         error_df = api_df[api_df["success"] == 0]
@@ -908,7 +909,7 @@ if not api_df.empty:
                 xaxis_title="",
                 yaxis_title="Error Count",
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+            st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
         else:
             st.success("No API errors recorded.")
 
@@ -930,7 +931,7 @@ if not api_df.empty:
         xaxis_title="HTTP Status Code",
         yaxis_title="Count",
     )
-    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 st.divider()
 
@@ -953,7 +954,7 @@ if not ticket_df.empty:
         )
 
     styled = display_df.style.map(priority_badge, subset=["priority"])
-    st.dataframe(styled, use_container_width=True, height=400)
+    st.dataframe(styled, width="stretch", height=400)
 
     if st.toggle("› View ticket details", key="toggle_ticket_details"):
         with st.container(border=True):
@@ -991,7 +992,7 @@ _term("tail -f api.log")
 if st.toggle("› Show last 100 API calls", key="toggle_api_logs"):
     with st.container(border=True):
         if not api_df.empty:
-            st.dataframe(api_df.head(100), use_container_width=True, height=300)
+            st.dataframe(api_df.head(100), width="stretch", height=300)
         else:
             st.write("No API logs yet.")
 
@@ -999,16 +1000,27 @@ st.divider()
 
 # ── Section 6: Export ─────────────────────────────────────────────────────────
 _term("export --format pdf")
+
+
+@st.cache_data(ttl=60)
+def _cached_html_report(all_tix, api_logs_raw, t_stats_items, a_stats_items, version):
+    """Cache the HTML report so it's only rebuilt when data changes."""
+    return _build_html_report(all_tix, api_logs_raw, dict(t_stats_items), dict(a_stats_items))
+
+
 if all_tickets:
     _report_stats  = load_ticket_stats(st.session_state.data_version)
     _report_api    = load_api_health_stats(st.session_state.data_version) if api_logs else {}
-    _report_html   = _build_html_report(all_tickets, api_logs, _report_stats, _report_api)
+    _report_html   = _cached_html_report(
+        all_tickets, api_logs,
+        tuple(_report_stats.items()), tuple(_report_api.items()),
+        st.session_state.data_version,
+    )
     st.download_button(
         label="⬇ Download PDF Report",
         data=_report_html,
         file_name=f"supportops-report-{datetime.now().strftime('%Y%m%d-%H%M')}.html",
         mime="text/html",
-        use_container_width=True,
         help="Open in browser → Ctrl+P → Save as PDF. Dark theme preserved.",
     )
     st.caption("// open in browser → Ctrl+P → Save as PDF · dark theme preserved")

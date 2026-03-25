@@ -6,6 +6,7 @@ Tables: tickets, api_health_logs
 
 import sqlite3
 import os
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 # HuggingFace Spaces persists /data between restarts — set DB_PATH=/data/supportops.db
@@ -16,18 +17,21 @@ DB_PATH = os.environ.get(
 )
 
 
+@contextmanager
 def get_connection():
-    """Return a connection to the SQLite database."""
+    """Yield a connection to the SQLite database, closing it on exit."""
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # allows dict-like row access
-    return conn
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def init_db():
     """Create tables and indexes if they don't exist."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         cursor = conn.cursor()
 
         # --- Tickets table ---
@@ -71,16 +75,13 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_logs_timestamp ON api_health_logs(timestamp)")
 
         conn.commit()
-    finally:
-        conn.close()
 
 
 # ── Ticket queries ──────────────────────────────────────────────────────────
 
 def insert_ticket(ticket: dict):
     """Insert a ticket, ignoring duplicates by ticket_id."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         conn.execute("""
             INSERT OR IGNORE INTO tickets
                 (ticket_id, created_at, customer, subject, body, priority, status)
@@ -88,69 +89,59 @@ def insert_ticket(ticket: dict):
                 (:ticket_id, :created_at, :customer, :subject, :body, :priority, :status)
         """, ticket)
         conn.commit()
-    finally:
-        conn.close()
 
 
 def update_ticket_ai_fields(ticket_id: str, category: str, sentiment: str, ai_summary: str):
     """Update AI-assigned fields after triage."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         conn.execute("""
             UPDATE tickets
             SET category = ?, sentiment = ?, ai_summary = ?
             WHERE ticket_id = ?
         """, (category, sentiment, ai_summary, ticket_id))
         conn.commit()
-    finally:
-        conn.close()
 
 
 def resolve_ticket(ticket_id: str):
     """Mark a ticket as resolved with current timestamp."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         conn.execute("""
             UPDATE tickets
             SET status = 'resolved', resolved_at = ?
             WHERE ticket_id = ?
         """, (datetime.now(timezone.utc).isoformat(), ticket_id))
         conn.commit()
-    finally:
-        conn.close()
 
 
 def get_all_tickets():
     """Return all tickets ordered by creation date descending."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         rows = conn.execute("SELECT * FROM tickets ORDER BY created_at DESC").fetchall()
         return [dict(r) for r in rows]
-    finally:
-        conn.close()
 
 
 def get_tickets_by_status(status: str):
     """Return tickets filtered by status."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         rows = conn.execute(
             "SELECT * FROM tickets WHERE status = ? ORDER BY created_at DESC", (status,)
         ).fetchall()
         return [dict(r) for r in rows]
-    finally:
-        conn.close()
 
 
 def get_ticket_stats():
     """Return aggregate stats used by the dashboard."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         stats = {}
 
-        stats["total"] = conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
-        stats["open"] = conn.execute("SELECT COUNT(*) FROM tickets WHERE status = 'open'").fetchone()[0]
-        stats["resolved"] = conn.execute("SELECT COUNT(*) FROM tickets WHERE status = 'resolved'").fetchone()[0]
+        # Derive total/open/resolved from a single GROUP BY
+        status_rows = conn.execute(
+            "SELECT status, COUNT(*) as count FROM tickets GROUP BY status"
+        ).fetchall()
+        status_counts = {r["status"]: r["count"] for r in status_rows}
+        stats["total"] = sum(status_counts.values())
+        stats["open"] = status_counts.get("open", 0)
+        stats["resolved"] = status_counts.get("resolved", 0)
 
         # Category breakdown
         rows = conn.execute("""
@@ -180,16 +171,13 @@ def get_ticket_stats():
         stats["by_sentiment"] = {r["sentiment"]: r["count"] for r in rows}
 
         return stats
-    finally:
-        conn.close()
 
 
 # ── API health log queries ──────────────────────────────────────────────────
 
 def insert_api_log(log: dict):
     """Insert an API health log entry."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         conn.execute("""
             INSERT INTO api_health_logs
                 (timestamp, endpoint, status_code, latency_ms, success, error_type, ticket_id)
@@ -197,46 +185,40 @@ def insert_api_log(log: dict):
                 (:timestamp, :endpoint, :status_code, :latency_ms, :success, :error_type, :ticket_id)
         """, log)
         conn.commit()
-    finally:
-        conn.close()
 
 
 def get_api_logs(limit: int = 200):
     """Return recent API health logs."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         rows = conn.execute(
             "SELECT * FROM api_health_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(r) for r in rows]
-    finally:
-        conn.close()
 
 
 def clear_all_data():
     """Delete all tickets and API health logs. Returns counts of deleted rows."""
-    conn = get_connection()
-    try:
-        tickets_deleted = conn.execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
-        logs_deleted = conn.execute(
-            "SELECT COUNT(*) FROM api_health_logs"
-        ).fetchone()[0]
+    with get_connection() as conn:
         conn.execute("DELETE FROM tickets")
+        tickets_deleted = conn.execute("SELECT changes()").fetchone()[0]
         conn.execute("DELETE FROM api_health_logs")
+        logs_deleted = conn.execute("SELECT changes()").fetchone()[0]
         conn.commit()
         return {"tickets": tickets_deleted, "logs": logs_deleted}
-    finally:
-        conn.close()
 
 
 def get_api_health_stats():
     """Return aggregate API health stats."""
-    conn = get_connection()
-    try:
+    with get_connection() as conn:
         stats = {}
 
-        total = conn.execute("SELECT COUNT(*) FROM api_health_logs").fetchone()[0]
-        success = conn.execute("SELECT COUNT(*) FROM api_health_logs WHERE success = 1").fetchone()[0]
+        # Derive total and success count from a single GROUP BY
+        rows = conn.execute(
+            "SELECT success, COUNT(*) as count FROM api_health_logs GROUP BY success"
+        ).fetchall()
+        counts = {r["success"]: r["count"] for r in rows}
+        total = sum(counts.values())
+        success = counts.get(1, 0)
         stats["total_calls"] = total
         stats["success_rate"] = round((success / total * 100), 1) if total > 0 else 0
 
@@ -256,5 +238,3 @@ def get_api_health_stats():
         stats["errors_by_type"] = {r["error_type"]: r["count"] for r in rows}
 
         return stats
-    finally:
-        conn.close()
